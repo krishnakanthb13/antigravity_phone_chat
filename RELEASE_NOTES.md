@@ -59,17 +59,263 @@ We are thrilled to announce the **first official release** of **Antigravity Phon
 
 ### 📡 API Endpoints
 
-| Endpoint | Method | Description |
-|:---------|:-------|:------------|
-| `/health` | GET | Server status, CDP connection state, and uptime |
-| `/snapshot` | GET | Latest captured HTML/CSS snapshot |
-| `/app-state` | GET | Current Mode and Model selection |
-| `/send` | POST | Send a message to Antigravity chat |
-| `/stop` | POST | Stop current AI generation |
-| `/set-mode` | POST | Change mode (Fast/Planning) |
-| `/set-model` | POST | Change AI model |
-| `/remote-click` | POST | Trigger desktop click event |
-| `/debug-ui` | GET | Serialized UI tree for debugging |
+All endpoints are REST-based and return JSON responses.
+
+---
+
+#### `GET /health`
+**Purpose:** Check server status and CDP connection health.
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "cdpConnected": true,
+  "uptime": 123.456,
+  "timestamp": "2026-01-17T01:10:00.000Z"
+}
+```
+
+**Usage:**
+```bash
+curl http://192.168.1.x:3000/health
+```
+
+---
+
+#### `GET /snapshot`
+**Purpose:** Get the latest captured HTML/CSS snapshot of the Antigravity chat.
+
+**Response:**
+```json
+{
+  "html": "<div id=\"cascade\">...</div>",
+  "css": "/* Captured stylesheets */",
+  "backgroundColor": "rgb(30, 41, 59)",
+  "color": "rgb(248, 250, 252)",
+  "fontFamily": "Inter, system-ui, sans-serif",
+  "stats": {
+    "nodes": 245,
+    "htmlSize": 52480,
+    "cssSize": 128000
+  }
+}
+```
+
+**Usage:**
+```bash
+curl http://192.168.1.x:3000/snapshot
+```
+
+---
+
+#### `GET /app-state`
+**Purpose:** Get the current Mode (Fast/Planning) and AI Model selection from the desktop.
+
+**Response:**
+```json
+{
+  "mode": "Fast",
+  "model": "Gemini 3 Pro (High)"
+}
+```
+
+**Usage:**
+```bash
+curl http://192.168.1.x:3000/app-state
+```
+
+**Notes:** Used by the mobile UI to sync state every 5 seconds and on manual refresh.
+
+---
+
+#### `POST /send`
+**Purpose:** Send a message/prompt to the Antigravity chat.
+
+**Request Body:**
+```json
+{
+  "message": "Please create a function to sort an array."
+}
+```
+
+**Response (Success):**
+```json
+{
+  "success": true,
+  "method": "click_submit"
+}
+```
+
+**Response (Error):**
+```json
+{
+  "success": false,
+  "reason": "busy"
+}
+```
+
+**Usage:**
+```bash
+curl -X POST http://192.168.1.x:3000/send \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Continue"}'
+```
+
+---
+
+#### `POST /stop`
+**Purpose:** Stop the current AI generation in progress.
+
+**Response (Success):**
+```json
+{
+  "success": true
+}
+```
+
+**Response (No Active Generation):**
+```json
+{
+  "error": "No active generation found to stop"
+}
+```
+
+**Usage:**
+```bash
+curl -X POST http://192.168.1.x:3000/stop
+```
+
+---
+
+#### `POST /set-mode`
+**Purpose:** Switch between Fast and Planning modes.
+
+**Request Body:**
+```json
+{
+  "mode": "Planning"
+}
+```
+
+**Valid Values:** `"Fast"` or `"Planning"`
+
+**Response (Success):**
+```json
+{
+  "success": true
+}
+```
+
+**Response (Already Set):**
+```json
+{
+  "success": true,
+  "alreadySet": true
+}
+```
+
+**Usage:**
+```bash
+curl -X POST http://192.168.1.x:3000/set-mode \
+  -H "Content-Type: application/json" \
+  -d '{"mode": "Planning"}'
+```
+
+---
+
+#### `POST /set-model`
+**Purpose:** Change the AI model.
+
+**Request Body:**
+```json
+{
+  "model": "Claude Sonnet 4.5"
+}
+```
+
+**Available Models (Example):**
+- `"Gemini 3 Pro (High)"`
+- `"Gemini 3 Pro (Low)"`
+- `"Gemini 3 Flash"`
+- `"Claude Sonnet 4.5"`
+- `"Claude Sonnet 4.5 (Thinking)"`
+- `"Claude Opus 4.5 (Thinking)"`
+- `"GPT-OSS 120B (Medium)"`
+
+**Response (Success):**
+```json
+{
+  "success": true
+}
+```
+
+**Usage:**
+```bash
+curl -X POST http://192.168.1.x:3000/set-model \
+  -H "Content-Type: application/json" \
+  -d '{"model": "Claude Sonnet 4.5"}'
+```
+
+---
+
+#### `POST /remote-click`
+**Purpose:** Trigger a click event on the desktop to expand/collapse "Thinking" or "Thought" blocks.
+
+**Request Body:**
+```json
+{
+  "selector": "div",
+  "index": 0,
+  "textContent": "Thought for 3s"
+}
+```
+
+**Response (Success):**
+```json
+{
+  "success": true
+}
+```
+
+**Usage:**
+```bash
+curl -X POST http://192.168.1.x:3000/remote-click \
+  -H "Content-Type: application/json" \
+  -d '{"selector": "summary", "index": 0, "textContent": "Thinking"}'
+```
+
+**Notes:** Automatically triggered when tapping on Thought/Thinking blocks in the mobile UI.
+
+---
+
+#### `GET /debug-ui`
+**Purpose:** Get a serialized UI tree for debugging element selection.
+
+**Response:** JSON representation of the inspected UI tree.
+
+**Usage:**
+```bash
+curl http://192.168.1.x:3000/debug-ui
+```
+
+**Notes:** Outputs to server console as well. Useful for troubleshooting selector issues.
+
+---
+
+### 📊 Endpoint Summary Table
+
+| Endpoint | Method | Used By | Auto-Called |
+|:---------|:-------|:--------|:------------|
+| `/health` | GET | Health checks, monitoring | No |
+| `/snapshot` | GET | Mobile UI rendering | Yes (on WebSocket notification) |
+| `/app-state` | GET | Mode/Model sync | Yes (every 5 seconds) |
+| `/send` | POST | Message input, Quick Actions | User-initiated |
+| `/stop` | POST | Stop button | User-initiated |
+| `/set-mode` | POST | Mode selector modal | User-initiated |
+| `/set-model` | POST | Model selector modal | User-initiated |
+| `/remote-click` | POST | Thought expansion | Tap on Thought blocks |
+| `/debug-ui` | GET | Developer debugging | Manual only |
 
 ---
 
