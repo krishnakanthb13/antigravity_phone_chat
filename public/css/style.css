@@ -1,0 +1,538 @@
+:root {
+    /* Premium Dark Theme Tokens (Slate Palette) */
+    --bg-app: #0f172a;
+    /* Slate 950 */
+    --bg-panel: #1e293b;
+    /* Slate 800 */
+    --bg-input: #334155;
+    /* Slate 700 */
+    --border: #334155;
+    /* Slate 700 */
+    --text-main: #f8fafc;
+    /* Slate 50 */
+    --text-muted: #94a3b8;
+    /* Slate 400 */
+    --accent: #3b82f6;
+    /* Blue 500 */
+    --accent-hover: #2563eb;
+    /* Blue 600 */
+    --success: #22c55e;
+    /* Green 500 */
+    --warning: #eab308;
+    /* Yellow 500 */
+    --error: #ef4444;
+    /* Red 500 */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent overscroll bounce on iOS */
+html {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg-app);
+    color: var(--text-main);
+    height: 100%;
+    /* Revert to standard percent height */
+    position: relative;
+    /* Remove fixed */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* Keep internal scroll */
+}
+
+
+/* Header */
+.header {
+    background: rgba(30, 41, 59, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    z-index: 50;
+}
+
+.header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.stop-btn {
+    background: #ef4444;
+    color: #fff;
+    border: none;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+    display: none;
+    /* Only show when needed or always show? User asked for feature 1 */
+    /* I'll make it always visible or toggleable */
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.stop-btn:active {
+    transform: scale(0.95);
+}
+
+.refresh-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.refresh-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.refresh-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    fill: none;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+    transition: background 0.3s, box-shadow 0.3s;
+}
+
+.status-dot.connected {
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+}
+
+.status-dot.disconnected {
+    background: var(--warning);
+}
+
+/* Chat Container */
+.chat-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    background: var(--bg-app);
+}
+
+.chat-content {
+    min-height: 100%;
+    padding: 20px 24px;
+}
+
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: var(--text-muted);
+    gap: 12px;
+}
+
+.loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--bg-input);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Quick Actions Bar */
+.quick-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px 16px 0 16px;
+    overflow-x: auto;
+    background: var(--bg-panel);
+}
+
+.action-chip {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.action-chip:active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+/* Input Section */
+.input-section {
+    background: var(--bg-panel);
+    border-top: none;
+    /* Removed border since actions are above */
+    padding: 8px 16px 12px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.input-wrapper {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    /* Center text vertically */
+    background-color: var(--bg-input);
+    padding: 4px 4px 4px 16px;
+    /* Reduced vertical padding */
+    border-radius: 24px;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+    min-height: 48px;
+    background-image: none !important;
+    box-shadow: none !important;
+}
+
+.input-wrapper:focus-within {
+    border-color: var(--accent);
+    background-color: var(--bg-panel);
+    /* Soft glow instead of hard shadow */
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.2) !important;
+}
+
+textarea {
+    flex: 1;
+    /* NUCLEAR OPTION for cleanup */
+    background-color: transparent !important;
+    background: rgba(0, 0, 0, 0) !important;
+    background-image: none !important;
+    border: none !important;
+    color: #ffffff !important;
+    padding: 10px 0;
+    /* Vertical center visual */
+    font-size: 16px;
+    font-family: inherit;
+    resize: none;
+    min-height: 24px;
+    /* Matches line height */
+    max-height: 160px;
+    line-height: 1.5;
+    opacity: 1;
+    margin: 0;
+    outline: none !important;
+    box-shadow: none !important;
+    /* Vendor Resets */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border-radius: 0;
+    caret-color: var(--accent);
+}
+
+/* Specific fix for Chrome/Android autofill background */
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+    -webkit-text-fill-color: #ffffff;
+    -webkit-box-shadow: 0 0 0px 1000px var(--bg-input) inset;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+textarea:focus {
+    outline: none;
+}
+
+/* Hide scrollbar on textarea but allow scroll */
+textarea::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
+
+.send-btn {
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    align-self: flex-end;
+    /* Keep button at bottom when text wraps */
+    margin-bottom: 2px;
+}
+
+.send-btn:hover {
+    background: rgba(37, 99, 235, 0.1);
+}
+
+.send-btn svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+    stroke: none;
+}
+
+.send-btn:active {
+    transform: scale(0.92);
+    background: var(--accent-hover);
+}
+
+.send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--bg-input);
+}
+
+/* Floating Action Button (Scroll Down) */
+.fab {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg-panel);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 100;
+}
+
+.fab.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.fab:hover {
+    background: var(--bg-input);
+}
+
+.fab svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    stroke-width: 2.5;
+}
+
+@keyframes spin-once {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.spin-anim {
+    animation: spin-once 0.5s ease-out;
+}
+
+/* Settings Bar */
+.settings-bar {
+    background: var(--bg-panel);
+    padding: 8px 16px;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.setting-chip {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.setting-chip:active {
+    transform: scale(0.95);
+}
+
+.setting-chip.active {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px);
+    z-index: 2000;
+    display: none;
+    justify-content: center;
+    align-items: flex-end;
+}
+
+.modal-overlay.show {
+    display: flex;
+}
+
+.modal-panel {
+    background: var(--bg-panel);
+    width: 100%;
+    max-width: 500px;
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+.modal-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-main);
+}
+
+.modal-option {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-main);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.modal-option:last-child {
+    border-bottom: none;
+}
+
+.modal-option:active {
+    background: var(--bg-input);
+}
+
+/* SSL Banner */
+.ssl-banner {
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+    color: #000;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.ssl-banner button {
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ssl-banner button:hover {
+    background: #333;
+}
+
+.ssl-banner .dismiss-btn {
+    background: transparent;
+    color: #000;
+    font-size: 16px;
+    padding: 0 4px;
+}

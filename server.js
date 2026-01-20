@@ -720,6 +720,7 @@ async function initCDP() {
 }
 
 // Background polling
+// Background polling
 async function startPolling(wss) {
     setInterval(async () => {
         if (!cdpConnection) return;
