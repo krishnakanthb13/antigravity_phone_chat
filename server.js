@@ -1,5 +1,8 @@
 #!/usr/bin/env node
+import 'dotenv/config';
 import express from 'express';
+import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import { WebSocketServer } from 'ws';
 import http from 'http';
 import https from 'https';
@@ -17,6 +20,11 @@ const __dirname = dirname(__filename);
 const PORTS = [9000, 9001, 9002, 9003];
 const POLL_INTERVAL = 1000; // 1 second
 const SERVER_PORT = process.env.PORT || 3000;
+const APP_PASSWORD = process.env.APP_PASSWORD || 'antigravity';
+const AUTH_COOKIE_NAME = 'ag_auth_token';
+// Note: hashString is defined later, so we'll initialize the token inside createServer or use a simple string for now.
+let AUTH_TOKEN = 'ag_default_token';
+
 
 // Shared CDP connection
 let cdpConnection = null;
@@ -734,6 +742,30 @@ function hashString(str) {
     return hash.toString(36);
 }
 
+// Check if a request is from the same Wi-Fi (internal network)
+function isLocalRequest(req) {
+    // 1. Check for proxy headers (Cloudflare, ngrok, etc.)
+    // If these exist, the request is coming via an external tunnel/proxy
+    if (req.headers['x-forwarded-for'] || req.headers['x-forwarded-host'] || req.headers['x-real-ip']) {
+        return false;
+    }
+
+    // 2. Check the remote IP address
+    const ip = req.ip || req.socket.remoteAddress || '';
+
+    // Standard local/private IPv4 and IPv6 ranges
+    return ip === '127.0.0.1' ||
+        ip === '::1' ||
+        ip === '::ffff:127.0.0.1' ||
+        ip.startsWith('192.168.') ||
+        ip.startsWith('10.') ||
+        ip.startsWith('172.16.') || ip.startsWith('172.17.') ||
+        ip.startsWith('172.18.') || ip.startsWith('172.19.') ||
+        ip.startsWith('172.2') || ip.startsWith('172.3') ||
+        ip.startsWith('::ffff:192.168.') ||
+        ip.startsWith('::ffff:10.');
+}
+
 // Initialize CDP connection
 async function initCDP() {
     console.log('🔍 Discovering VS Code CDP endpoint...');
@@ -846,14 +878,74 @@ async function createServer() {
 
     const wss = new WebSocketServer({ server });
 
+    // Initialize Auth Token (wait for hashString to be available)
+    AUTH_TOKEN = hashString(APP_PASSWORD + 'antigravity_salt');
+
+    app.use(compression());
     app.use(express.json());
+    app.use(cookieParser('antigravity_secret_key_1337'));
+
+    // Ngrok Bypass Middleware
+    app.use((req, res, next) => {
+        // Tell ngrok to skip the "visit" warning for API requests
+        res.setHeader('ngrok-skip-browser-warning', 'true');
+        next();
+    });
+
+    // Auth Middleware
+    app.use((req, res, next) => {
+        const publicPaths = ['/login', '/login.html', '/favicon.ico'];
+        if (publicPaths.includes(req.path) || req.path.startsWith('/css/')) {
+            return next();
+        }
+
+        // Exempt local Wi-Fi devices from authentication
+        if (isLocalRequest(req)) {
+            return next();
+        }
+
+        const token = req.signedCookies[AUTH_COOKIE_NAME];
+        if (token === AUTH_TOKEN) {
+            return next();
+        }
+
+        // If it's an API request, return 401, otherwise redirect to login
+        if (req.xhr || req.headers.accept?.includes('json') || req.path.startsWith('/snapshot') || req.path.startsWith('/send')) {
+            res.status(401).json({ error: 'Unauthorized' });
+        } else {
+            res.redirect('/login.html');
+        }
+    });
+
     app.use(express.static(join(__dirname, 'public')));
+
+    // Login endpoint
+    app.post('/login', (req, res) => {
+        const { password } = req.body;
+        if (password === APP_PASSWORD) {
+            res.cookie(AUTH_COOKIE_NAME, AUTH_TOKEN, {
+                httpOnly: true,
+                signed: true,
+                maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+            });
+            res.json({ success: true });
+        } else {
+            res.status(401).json({ success: false, error: 'Invalid password' });
+        }
+    });
+
+    // Logout endpoint
+    app.post('/logout', (req, res) => {
+        res.clearCookie(AUTH_COOKIE_NAME);
+        res.json({ success: true });
+    });
 
     // Get current snapshot
     app.get('/snapshot', (req, res) => {
         if (!lastSnapshot) {
             return res.status(503).json({ error: 'No snapshot available yet' });
         }
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.json(lastSnapshot);
     });
 
@@ -955,9 +1047,44 @@ async function createServer() {
         });
     });
 
-    // WebSocket connection
-    wss.on('connection', (ws) => {
-        console.log('📱 Client connected');
+    // WebSocket connection with Auth check
+    wss.on('connection', (ws, req) => {
+        // Parse cookies from headers
+        const rawCookies = req.headers.cookie || '';
+        const parsedCookies = {};
+        rawCookies.split(';').forEach(c => {
+            const [k, v] = c.trim().split('=');
+            if (k && v) {
+                try {
+                    parsedCookies[k] = decodeURIComponent(v);
+                } catch (e) {
+                    parsedCookies[k] = v;
+                }
+            }
+        });
+
+        // Verify signed cookie manually
+        const signedToken = parsedCookies[AUTH_COOKIE_NAME];
+        let isAuthenticated = false;
+
+        // Exempt local Wi-Fi devices from authentication
+        if (isLocalRequest(req)) {
+            isAuthenticated = true;
+        } else if (signedToken) {
+            const token = cookieParser.signedCookie(signedToken, 'antigravity_secret_key_1337');
+            if (token === AUTH_TOKEN) {
+                isAuthenticated = true;
+            }
+        }
+
+        if (!isAuthenticated) {
+            console.log('🚫 Unauthorized WebSocket connection attempt');
+            ws.send(JSON.stringify({ type: 'error', message: 'Unauthorized' }));
+            setTimeout(() => ws.close(), 100);
+            return;
+        }
+
+        console.log('📱 Client connected (Authenticated)');
 
         ws.on('close', () => {
             console.log('📱 Client disconnected');

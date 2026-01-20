@@ -26,12 +26,31 @@ let ws = null;
 let idleTimer = null;
 let lastHash = '';
 let currentMode = 'Fast';
+
+// --- Auth Utilities ---
+async function fetchWithAuth(url, options = {}) {
+    // Add ngrok skip warning header to all requests
+    if (!options.headers) options.headers = {};
+    options.headers['ngrok-skip-browser-warning'] = 'true';
+
+    try {
+        const res = await fetch(url, options);
+        if (res.status === 401) {
+            console.log('[AUTH] Unauthorized, redirecting to login...');
+            window.location.href = '/login.html';
+            return new Promise(() => { }); // Halt execution
+        }
+        return res;
+    } catch (e) {
+        throw e;
+    }
+}
 const USER_SCROLL_LOCK_DURATION = 3000; // 3 seconds of scroll protection
 
 // --- Sync State (Desktop is Always Priority) ---
 async function fetchAppState() {
     try {
-        const res = await fetch('/app-state');
+        const res = await fetchWithAuth('/app-state');
         const data = await res.json();
 
         // Mode Sync (Fast/Planning) - Desktop is source of truth
@@ -69,7 +88,7 @@ async function enableHttps() {
     btn.disabled = true;
 
     try {
-        const res = await fetch('/generate-ssl', { method: 'POST' });
+        const res = await fetchWithAuth('/generate-ssl', { method: 'POST' });
         const data = await res.json();
 
         if (data.success) {
@@ -119,6 +138,10 @@ function connectWebSocket() {
 
     ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        if (data.type === 'error' && data.message === 'Unauthorized') {
+            window.location.href = '/login.html';
+            return;
+        }
         if (data.type === 'snapshot_update' && autoRefreshEnabled && !userIsScrolling) {
             loadSnapshot();
         }
@@ -152,7 +175,7 @@ async function loadSnapshot() {
         void icon.offsetWidth; // trigger reflow
         icon.classList.add('spin-anim');
 
-        const response = await fetch('/snapshot');
+        const response = await fetchWithAuth('/snapshot');
         if (!response.ok) {
             if (response.status === 503) return;
             throw new Error('Failed to load');
@@ -539,7 +562,7 @@ async function sendMessage() {
     sendBtn.style.opacity = '0.5';
 
     try {
-        const res = await fetch('/send', {
+        const res = await fetchWithAuth('/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message })
@@ -594,7 +617,7 @@ let snapshotReloadPending = false;
 async function syncScrollToDesktop() {
     const scrollPercent = chatContainer.scrollTop / (chatContainer.scrollHeight - chatContainer.clientHeight);
     try {
-        await fetch('/remote-scroll', {
+        await fetchWithAuth('/remote-scroll', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ scrollPercent })
@@ -661,7 +684,7 @@ function quickAction(text) {
 stopBtn.addEventListener('click', async () => {
     stopBtn.style.opacity = '0.5';
     try {
-        const res = await fetch('/stop', { method: 'POST' });
+        const res = await fetchWithAuth('/stop', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
             // alert('Stopped');
@@ -704,7 +727,7 @@ modeBtn.addEventListener('click', () => {
     openModal('Select Mode', ['Fast', 'Planning'], async (mode) => {
         modeText.textContent = 'Setting...';
         try {
-            const res = await fetch('/set-mode', {
+            const res = await fetchWithAuth('/set-mode', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mode })
@@ -729,7 +752,7 @@ modelBtn.addEventListener('click', () => {
         const prev = modelText.textContent;
         modelText.textContent = 'Setting...';
         try {
-            const res = await fetch('/set-model', {
+            const res = await fetchWithAuth('/set-model', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ model })
@@ -795,7 +818,7 @@ chatContainer.addEventListener('click', async (e) => {
         const firstLine = text.split('\n')[0].trim();
 
         try {
-            const response = await fetch('/remote-click', {
+            const response = await fetchWithAuth('/remote-click', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

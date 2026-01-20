@@ -53,6 +53,8 @@ echo [TIP] To add Right-Click context menu, run: install_context_menu.bat
 if "!PROTOCOL!"=="http" (
     echo [TIP] To enable HTTPS, run: node generate_ssl.js
 )
+echo [SECURITY] Default Password: antigravity
+echo            (Change it by setting the APP_PASSWORD env variable)
 echo.
 
 echo [STARTING] Launching monitor server...

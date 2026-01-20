@@ -8,8 +8,11 @@
         "dev": "node server.js"
     },
     "dependencies": {
-        "ws": "^8.18.0",
-        "express": "^4.18.2"
+        "compression": "^1.8.1",
+        "cookie-parser": "^1.4.7",
+        "dotenv": "^16.4.7",
+        "express": "^4.18.2",
+        "ws": "^8.18.0"
     },
     "author": "Krishna Kanth B (krishnakanthb13)",
     "license": "GPL-3.0-only",
