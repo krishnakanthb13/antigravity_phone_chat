@@ -114,6 +114,15 @@ def main():
     # Load .env if it exists
     load_dotenv()
 
+    # Clean up placeholder ngrok environment variables
+    token = os.environ.get('NGROK_AUTHTOKEN')
+    if token in ('your-ngrok-authtoken', 'your_actual_ngrok_authtoken_here'):
+        del os.environ['NGROK_AUTHTOKEN']
+
+    domain = os.environ.get('NGROK_DOMAIN')
+    if domain == 'yourname.ngrok-free.app':
+        del os.environ['NGROK_DOMAIN']
+
     # Determine Provider
     provider = args.provider or os.environ.get('TUNNEL_PROVIDER', 'ngrok').lower()
     
@@ -298,10 +307,14 @@ def main():
                 if token:
                     ngrok.set_auth_token(token)
                 else:
-                    print("⚠️  Warning: NGROK_AUTHTOKEN not found in .env. Tunnel might expire.")
+                    print("⚠️  Warning: NGROK_AUTHTOKEN not found or is default placeholder in .env. Tunnel might expire in 1 hour.")
 
+                ngrok_domain = os.environ.get('NGROK_DOMAIN')
                 print("PLEASE WAIT... Establishing Ngrok Tunnel...")
-                tunnel = ngrok.connect(addr, host_header="rewrite")
+                if ngrok_domain:
+                    tunnel = ngrok.connect(addr, host_header="rewrite", domain=ngrok_domain)
+                else:
+                    tunnel = ngrok.connect(addr, host_header="rewrite")
                 public_url = tunnel.public_url
             
             # Magic URL with password
