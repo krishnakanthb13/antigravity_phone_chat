@@ -24,6 +24,11 @@
         </h1>
 
         <div class="header-controls">
+            <button class="workspace-btn" id="workspaceToggleBtn" aria-label="Workspace Browser" title="Workspace Browser">
+                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+            </button>
             <button class="new-chat-btn" id="newChatBtn" aria-label="New Chat" title="New Chat (Ctrl+Shift+L)">
                 <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -118,10 +123,16 @@
 
     <!-- Input Section -->
     <div class="input-section">
+        <div id="uploadQueue" class="upload-queue"></div>
         <div class="input-wrapper">
             <textarea id="messageInput" placeholder="Message..." rows="1"></textarea>
 
-
+            <input type="file" id="fileUpload" style="display:none" multiple>
+            <button class="attach-btn" id="attachBtn" aria-label="Attach File">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                </svg>
+            </button>
 
             <button class="send-btn" id="sendBtn" aria-label="Send">
                 <svg viewBox="0 0 24 24">
@@ -175,6 +186,45 @@
         </div>
         <div class="history-content" id="historyList">
             <!-- Items injected here -->
+        </div>
+    </div>
+
+    <!-- Workspace Layer (Full Screen) -->
+    <div class="history-layer" id="workspaceLayer">
+        <div class="history-header">
+            <button class="icon-btn" id="workspaceBackBtn" aria-label="Back">
+                <svg viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </button>
+            <h2 id="workspaceTitle" style="font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:60%;">Workspace</h2>
+            <div style="width: 24px;"></div> <!-- Spacer -->
+        </div>
+        <div class="workspace-search-container">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="workspaceSearch" placeholder="Search files...">
+        </div>
+        <div class="history-content workspace-grid" id="workspaceList">
+            <!-- Items injected here -->
+        </div>
+    </div>
+
+    <!-- File Viewer Layer (Full Screen) -->
+    <div class="history-layer" id="fileViewerLayer">
+        <div class="history-header">
+            <button class="icon-btn" id="fileViewerBackBtn" aria-label="Back">
+                <svg viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </button>
+            <h2 id="fileViewerTitle" style="font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:60%;">File Viewer</h2>
+            <div style="width: 24px;"></div> <!-- Spacer -->
+        </div>
+        <div class="file-viewer-content" id="fileViewerContent">
+            <!-- Content injected here -->
         </div>
     </div>
 

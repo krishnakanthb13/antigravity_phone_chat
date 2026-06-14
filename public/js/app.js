@@ -609,7 +609,14 @@ function scrollToBottom() {
 
 // --- Inputs ---
 async function sendMessage() {
-    const message = messageInput.value.trim();
+    let message = messageInput.value.trim();
+    
+    let uploadNotes = '';
+    if (typeof queuedFiles !== 'undefined' && queuedFiles.length > 0) {
+        uploadNotes = await processQueuedUploads();
+        message += uploadNotes;
+    }
+
     if (!message) return;
 
     // Optimistic UI updates
@@ -1281,3 +1288,281 @@ setInterval(fetchAppState, 5000);
 // Check chat status initially and periodically
 checkChatStatus();
 setInterval(checkChatStatus, 10000); // Check every 10 seconds
+
+// --- File Upload Logic ---
+const attachBtn = document.getElementById('attachBtn');
+const fileUpload = document.getElementById('fileUpload');
+const uploadQueue = document.getElementById('uploadQueue');
+let queuedFiles = [];
+
+if (attachBtn && fileUpload && uploadQueue) {
+    attachBtn.addEventListener('click', () => {
+        fileUpload.click();
+    });
+
+    fileUpload.addEventListener('change', (e) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        
+        for (let i = 0; i < e.target.files.length; i++) {
+            queuedFiles.push(e.target.files[i]);
+        }
+        
+        renderUploadQueue();
+        fileUpload.value = ''; // Reset input
+    });
+}
+
+function renderUploadQueue() {
+    if (!uploadQueue) return;
+    uploadQueue.innerHTML = '';
+    
+    queuedFiles.forEach((file, index) => {
+        const chip = document.createElement('div');
+        chip.className = 'queue-chip';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = file.name;
+        nameSpan.style.overflow = 'hidden';
+        nameSpan.style.textOverflow = 'ellipsis';
+        nameSpan.style.maxWidth = '150px';
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+        
+        removeBtn.addEventListener('click', () => {
+            queuedFiles.splice(index, 1);
+            renderUploadQueue();
+        });
+        
+        chip.appendChild(nameSpan);
+        chip.appendChild(removeBtn);
+        uploadQueue.appendChild(chip);
+    });
+}
+
+async function processQueuedUploads() {
+    if (queuedFiles.length === 0) return '';
+    
+    attachBtn.classList.add('uploading');
+    
+    const formData = new FormData();
+    queuedFiles.forEach(file => {
+        formData.append('files', file);
+    });
+
+    try {
+        const res = await fetchWithAuth('/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+            queuedFiles = [];
+            renderUploadQueue();
+            return '\n' + data.files.map(f => `[Attached: ${f.originalname}]`).join('\n');
+        } else {
+            console.error('Upload failed:', data.error);
+            return '';
+        }
+    } catch (err) {
+        console.error('Upload error:', err);
+        return '';
+    } finally {
+        attachBtn.classList.remove('uploading');
+    }
+}
+
+// --- Workspace Browser Logic ---
+const workspaceToggleBtn = document.getElementById('workspaceToggleBtn');
+const workspaceLayer = document.getElementById('workspaceLayer');
+const workspaceBackBtn = document.getElementById('workspaceBackBtn');
+const workspaceList = document.getElementById('workspaceList');
+const workspaceTitle = document.getElementById('workspaceTitle');
+const workspaceSearch = document.getElementById('workspaceSearch');
+
+let currentWorkspacePath = '';
+
+if (workspaceToggleBtn && workspaceLayer) {
+    workspaceToggleBtn.addEventListener('click', () => {
+        workspaceLayer.classList.add('show');
+        loadWorkspace('');
+    });
+
+    workspaceBackBtn.addEventListener('click', () => {
+        workspaceLayer.classList.remove('show');
+    });
+
+    if (workspaceSearch) {
+        workspaceSearch.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const items = workspaceList.querySelectorAll('.workspace-item');
+            items.forEach(item => {
+                const name = item.querySelector('span').textContent.toLowerCase();
+                if (name.includes(term) || name.includes('(up)')) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    workspaceList.addEventListener('click', (e) => {
+        const item = e.target.closest('.workspace-item');
+        if (!item) return;
+
+        const path = item.getAttribute('data-path');
+        const isDir = item.getAttribute('data-isdir') === 'true';
+
+        if (isDir) {
+            if (workspaceSearch) workspaceSearch.value = '';
+            loadWorkspace(path);
+        } else {
+            openFileViewer(path, item.querySelector('span').textContent);
+        }
+    });
+}
+
+function getFileIcon(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    
+    // JS/TS
+    if (['js', 'jsx', 'ts', 'tsx'].includes(ext)) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="#f1e05a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M10 13l-2 2 2 2"></path><path d="M14 13l2 2-2 2"></path></svg>`;
+    }
+    // HTML
+    if (['html', 'htm'].includes(ext)) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="#e34c26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M12 18v-6"></path><path d="M9 15h6"></path></svg>`;
+    }
+    // CSS
+    if (['css', 'scss', 'sass'].includes(ext)) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="#563d7c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><circle cx="12" cy="15" r="3"></circle></svg>`;
+    }
+    // JSON
+    if (ext === 'json') {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M10 12a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2"></path><path d="M14 12a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2"></path></svg>`;
+    }
+    // Images
+    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+    }
+    // Markdown/Text
+    if (['md', 'txt'].includes(ext)) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+    }
+    
+    // Default file
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>`;
+}
+
+async function loadWorkspace(subPath) {
+    if (!workspaceList) return;
+    
+    workspaceList.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><p>Loading Workspace...</p></div>';
+    
+    try {
+        const res = await fetchWithAuth(`/api/workspace?path=${encodeURIComponent(subPath)}`);
+        const data = await res.json();
+        
+        if (data.error) {
+            workspaceList.innerHTML = `<div class="empty-state"><p style="color:var(--error)">${data.error}</p></div>`;
+            return;
+        }
+
+        currentWorkspacePath = data.relative;
+        workspaceTitle.textContent = currentWorkspacePath || 'Workspace';
+
+        let html = '';
+        
+        if (currentWorkspacePath !== '') {
+            const upPath = currentWorkspacePath.split('/').slice(0, -1).join('/');
+            html += `
+                <div class="workspace-item" data-path="${upPath}" data-isdir="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 14 4 9 9 4"></polyline>
+                        <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
+                    </svg>
+                    <span>.. (Up)</span>
+                </div>
+            `;
+        }
+
+        if (data.files.length === 0) {
+            workspaceList.innerHTML = html + '<div style="grid-column: 1/-1; text-align:center; padding: 20px; color: var(--text-muted);">Empty Directory</div>';
+            return;
+        }
+
+        data.files.forEach(f => {
+            const itemPath = currentWorkspacePath ? `${currentWorkspacePath}/${f.name}` : f.name;
+            if (f.isDirectory) {
+                html += `
+                    <div class="workspace-item" data-path="${itemPath}" data-isdir="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <span>${f.name}</span>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="workspace-item file" data-path="${itemPath}" data-isdir="false">
+                        ${getFileIcon(f.name)}
+                        <span>${f.name}</span>
+                    </div>
+                `;
+            }
+        });
+
+        workspaceList.innerHTML = html;
+        
+        // Re-apply search filter if there's text
+        if (workspaceSearch && workspaceSearch.value) {
+            workspaceSearch.dispatchEvent(new Event('input'));
+        }
+    } catch (err) {
+        workspaceList.innerHTML = `<div class="empty-state"><p style="color:var(--error)">${err.message}</p></div>`;
+    }
+}
+
+// --- File Viewer Logic ---
+const fileViewerLayer = document.getElementById('fileViewerLayer');
+const fileViewerBackBtn = document.getElementById('fileViewerBackBtn');
+const fileViewerTitle = document.getElementById('fileViewerTitle');
+const fileViewerContent = document.getElementById('fileViewerContent');
+
+if (fileViewerBackBtn && fileViewerLayer) {
+    fileViewerBackBtn.addEventListener('click', () => {
+        fileViewerLayer.classList.remove('show');
+    });
+}
+
+async function openFileViewer(path, filename) {
+    fileViewerTitle.textContent = filename;
+    fileViewerContent.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><p>Loading File...</p></div>';
+    fileViewerLayer.classList.add('show');
+    
+    const ext = filename.split('.').pop().toLowerCase();
+    const isImage = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext);
+    
+    const url = `/api/file?path=${encodeURIComponent(path)}`;
+    
+    if (isImage) {
+        fileViewerContent.innerHTML = `<img src="${url}" alt="${filename}">`;
+    } else {
+        try {
+            const res = await fetchWithAuth(url);
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to load file');
+            }
+            const text = await res.text();
+            
+            const escapedText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
+            fileViewerContent.innerHTML = `<pre><code>${escapedText}</code></pre>`;
+        } catch (err) {
+            fileViewerContent.innerHTML = `<div class="empty-state"><p style="color:var(--error)">${err.message}</p></div>`;
+        }
+    }
+}
