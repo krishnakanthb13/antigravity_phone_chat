@@ -95,9 +95,14 @@ def print_qr(url):
 # Main Execution
 # -----------------------------------------------------------------------------
 def main():
+    import signal
+    def handle_sigterm(signum, frame):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, handle_sigterm)
+
     parser = argparse.ArgumentParser(description="Antigravity Phone Connect Launcher")
     parser.add_argument('--mode', choices=['local', 'web'], default='web', help="Mode to run in: 'local' (WiFi) or 'web' (Internet)")
-    parser.add_argument('--provider', choices=['ngrok', 'cloudflare', 'pinggy'], help="Tunnel provider (defaults to .env TUNNEL_PROVIDER or 'ngrok')")
+    parser.add_argument('--provider', choices=['ngrok', 'cloudflare', 'pinggy', 'localtunnel'], help="Tunnel provider (defaults to .env TUNNEL_PROVIDER or 'ngrok')")
     args = parser.parse_args()
 
     # 1. Setup Environment
@@ -113,6 +118,7 @@ def main():
     
     # Load .env if it exists
     load_dotenv()
+
 
     # Determine Provider
     provider = args.provider or os.environ.get('TUNNEL_PROVIDER', 'ngrok').lower()
@@ -199,10 +205,10 @@ def main():
                 print("PLEASE WAIT... Establishing Pinggy Tunnel...")
                 try:
                     import pinggy
-                    pinggy_token = os.environ.get('PINGGY_TOKEN')  # Optional: for persistent subdomain
+                    pinggy_token = os.environ.get('PINGGY_TOKEN', '')  # Optional: for persistent subdomain
                     pinggy_tunnel = pinggy.start_tunnel(
                         forwardto=f"localhost:{port}",
-                        token=pinggy_token if pinggy_token else None,
+                        token=pinggy_token,
                         localservertls=(protocol == "https")
                     )
                     # Prefer HTTPS URL from the returned list
@@ -291,6 +297,61 @@ def main():
                     except Exception as e:
                         print(f"❌ Failed to start Cloudflare Tunnel: {e}")
                         sys.exit(1)
+            elif provider == 'localtunnel':
+                lt_subdomain = os.environ.get('LOCALTUNNEL_SUBDOMAIN')
+                print(f"PLEASE WAIT... Establishing Localtunnel Tunnel (Subdomain: {lt_subdomain or 'random'})...")
+                
+                lt_cmd = ["npx", "localtunnel", "--port", port]
+                if lt_subdomain:
+                    lt_cmd.extend(["--subdomain", lt_subdomain])
+                
+                try:
+                    lt_process = subprocess.Popen(
+                        lt_cmd, 
+                        stdout=subprocess.PIPE, 
+                        stderr=subprocess.STDOUT, 
+                        text=True, 
+                        bufsize=1, 
+                        universal_newlines=True
+                    )
+                    
+                    # Watch for the URL in the output
+                    start_time = time.time()
+                    timeout = 30 # seconds
+                    
+                    while time.time() - start_time < timeout:
+                        line = lt_process.stdout.readline()
+                        if not line:
+                            break
+                        
+                        # Localtunnel outputs: "your url is: https://subdomain.loca.lt"
+                        if "your url is:" in line or ".loca.lt" in line:
+                            import re
+                            match = re.search(r'https://[a-zA-Z0-9-]+\.loca\.lt', line)
+                            if match:
+                                public_url = match.group(0)
+                                break
+                            if "your url is:" in line:
+                                public_url = line.split("your url is:")[-1].strip()
+                                break
+                    
+                    if not public_url:
+                        print("❌ Failed to find Localtunnel URL. Make sure npx is installed.")
+                        lt_process.terminate()
+                        sys.exit(1)
+
+                    # Check if requested subdomain was rejected
+                    if lt_subdomain and lt_subdomain not in public_url:
+                        print("\n" + "!"*60)
+                        print(f"⚠️  WARNING: Requested subdomain '{lt_subdomain}' was rejected by the server.")
+                        print("   (This usually happens due to server-side cooldown from a recent restart.)")
+                        print("   To get your constant URL back, please stop this script,")
+                        print("   wait 60 seconds for the server to release the name, and start it again.")
+                        print("!"*60 + "\n")
+                        
+                except Exception as e:
+                    print(f"❌ Failed to start Localtunnel Tunnel: {e}")
+                    sys.exit(1)
             else:
                 # Default to Ngrok
                 # Check Ngrok Token
@@ -387,6 +448,8 @@ def main():
                         pass
                 elif provider == 'cloudflare' and 'cf_process' in locals():
                     cf_process.terminate()
+                elif provider == 'localtunnel' and 'lt_process' in locals():
+                    lt_process.terminate()
                 elif 'ngrok' in locals():
                     ngrok.kill()
         except Exception:
