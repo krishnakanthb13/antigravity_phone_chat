@@ -1062,27 +1062,60 @@ modeBtn.addEventListener('click', () => {
     });
 });
 
-modelBtn.addEventListener('click', () => {
-    openModal('Select Model', MODELS, async (model) => {
-        const prev = modelText.textContent;
-        modelText.textContent = 'Setting...';
-        try {
-            const res = await fetchWithAuth('/set-model', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model })
-            });
-            const data = await res.json();
-            if (data.success) {
-                modelText.textContent = model;
-            } else {
-                alert('Error: ' + (data.error || 'Unknown'));
-                modelText.textContent = prev;
-            }
-        } catch (e) {
-            modelText.textContent = prev;
+modelBtn.addEventListener('click', async () => {
+    // Open immediately with loading state
+    openModal('Select Model', ['Loading available models...'], () => {});
+
+    // Disable clicking the loading option and render spinner
+    const loadingOpt = modalList.querySelector('.modal-option');
+    if (loadingOpt) {
+        loadingOpt.style.opacity = '0.7';
+        loadingOpt.style.pointerEvents = 'none';
+        loadingOpt.innerHTML = '<span class="spinner-small"></span> Loading available models...';
+    }
+
+    let fetchedModels = MODELS;
+    try {
+        const res = await fetchWithAuth('/models');
+        const data = await res.json();
+        if (data && Array.isArray(data.models) && data.models.length > 0) {
+            fetchedModels = data.models;
         }
-    });
+    } catch (e) {
+        console.error('Failed to fetch models dynamically, falling back to static list', e);
+    }
+
+    // Populate modal list with loaded models if the modal is still open
+    if (modalOverlay.classList.contains('show') && modalTitle.textContent === 'Select Model') {
+        modalList.innerHTML = '';
+        fetchedModels.forEach(opt => {
+            const div = document.createElement('div');
+            div.className = 'modal-option';
+            div.textContent = opt;
+            div.addEventListener('click', async () => {
+                closeModal();
+                const prev = modelText.textContent;
+                modelText.textContent = 'Setting...';
+                try {
+                    const res = await fetchWithAuth('/set-model', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ model: opt })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        modelText.textContent = opt;
+                    } else {
+                        alert('Error: ' + (data.error || 'Unknown'));
+                        modelText.textContent = prev;
+                    }
+                } catch (e) {
+                    modelText.textContent = prev;
+                }
+            });
+            modalList.appendChild(div);
+        });
+    }
 });
 
 // --- Viewport / Keyboard Handling ---

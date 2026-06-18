@@ -894,3 +894,15 @@ textarea::-webkit-scrollbar {
 .mt-4 {
     margin-top: 24px;
 }
+
+.spinner-small {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--bg-input);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+}

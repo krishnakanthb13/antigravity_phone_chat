@@ -929,6 +929,123 @@ async function setModel(cdp, modelName) {
     return { error: 'Context failed' };
 }
 
+// Get list of available models from the IDE's UI
+async function getAvailableModels(cdp) {
+    const EXP = `(async () => {
+        try {
+            const KNOWN_KEYWORDS = ["Gemini", "Claude", "GPT", "Model"];
+            let modelBtn = null;
+            
+            // Strategy 1: Look for data-tooltip-id patterns (most reliable)
+            modelBtn = document.querySelector('[data-tooltip-id*="model"], [data-tooltip-id*="provider"]');
+            
+            // Strategy 2: Look for buttons/elements containing model keywords with SVG icons
+            if (!modelBtn) {
+                const candidates = Array.from(document.querySelectorAll('button, [role="button"], div, span'))
+                    .filter(el => {
+                        const txt = el.innerText?.trim() || '';
+                        return KNOWN_KEYWORDS.some(k => txt.includes(k)) && el.offsetParent !== null;
+                    });
+
+                modelBtn = candidates.find(el => {
+                    const style = window.getComputedStyle(el);
+                    const hasSvg = el.querySelector('svg.lucide-chevron-up') || 
+                                   el.querySelector('svg.lucide-chevron-down') || 
+                                   el.querySelector('svg[class*="chevron"]') ||
+                                   el.querySelector('svg');
+                    return (style.cursor === 'pointer' || el.tagName === 'BUTTON') && hasSvg;
+                }) || candidates[0];
+            }
+            
+            // Strategy 3: Traverse from text nodes up to clickable parents
+            if (!modelBtn) {
+                const allEls = Array.from(document.querySelectorAll('*'));
+                const textNodes = allEls.filter(el => {
+                    if (el.children.length > 0) return false;
+                    const txt = el.textContent;
+                    return KNOWN_KEYWORDS.some(k => txt.includes(k));
+                });
+
+                for (const el of textNodes) {
+                    let current = el;
+                    for (let i = 0; i < 5; i++) {
+                        if (!current) break;
+                        if (current.tagName === 'BUTTON' || window.getComputedStyle(current).cursor === 'pointer') {
+                            modelBtn = current;
+                            break;
+                        }
+                        current = current.parentElement;
+                    }
+                    if (modelBtn) break;
+                }
+            }
+
+            if (!modelBtn) return { error: 'Model selector button not found' };
+
+            // Check if dropdown/dialog is already open
+            let dialog = document.querySelector('[role="dialog"], [role="listbox"], [role="menu"], [data-radix-popper-content-wrapper]');
+            let openedHere = false;
+            
+            if (!dialog || dialog.offsetHeight === 0) {
+                modelBtn.click();
+                openedHere = true;
+                await new Promise(r => setTimeout(r, 600));
+                dialog = document.querySelector('[role="dialog"], [role="listbox"], [role="menu"], [data-radix-popper-content-wrapper]');
+            }
+
+            if (!dialog) {
+                dialog = Array.from(document.querySelectorAll('div')).find(d => {
+                    const style = window.getComputedStyle(d);
+                    return d.offsetHeight > 0 && 
+                           (style.position === 'absolute' || style.position === 'fixed') && 
+                           (d.innerText?.includes('Gemini') || d.innerText?.includes('Claude')) && 
+                           !d.innerText?.includes('Files With Changes');
+                });
+            }
+
+            if (!dialog) {
+                return { error: 'Model list dropdown not found' };
+            }
+
+            const allEls = Array.from(dialog.querySelectorAll('*'));
+            const textOptions = allEls
+                .filter(el => el.children.length === 0 && el.textContent?.trim().length > 0 && el.offsetParent !== null)
+                .map(el => el.textContent.trim());
+
+            // Close the dialog if we opened it
+            if (openedHere) {
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+                document.dispatchEvent(new KeyboardEvent('keyup',   { key: 'Escape', code: 'Escape', bubbles: true }));
+            }
+
+            // Filter out junk text (like "Fast", "Planning", "Model", etc.)
+            const junk = ["fast", "planning", "model", "cancel", "close", "back", "settings"];
+            const uniqueModels = Array.from(new Set(textOptions))
+                .filter(txt => {
+                    const lower = txt.toLowerCase();
+                    return !junk.includes(lower) && txt.length > 2 && txt.length < 60;
+                });
+
+            return { models: uniqueModels };
+        } catch(err) {
+            return { error: 'JS Error: ' + err.toString() };
+        }
+    })()`;
+
+    for (const ctx of cdp.contexts) {
+        try {
+            const res = await cdp.call("Runtime.evaluate", {
+                expression: EXP,
+                returnByValue: true,
+                awaitPromise: true,
+                contextId: ctx.id
+            });
+            if (res.result?.value) return res.result.value;
+        } catch (e) { }
+    }
+    return { error: 'Context failed' };
+}
+
 // Start New Chat - Click the + button at the TOP of the chat window (NOT the context/media + button)
 async function startNewChat(cdp) {
     const EXP = `(async () => {
@@ -1836,6 +1953,13 @@ async function createServer() {
         const { model } = req.body;
         if (!cdpConnection) return res.status(503).json({ error: 'CDP disconnected' });
         const result = await setModel(cdpConnection, model);
+        res.json(result);
+    });
+
+    // Get Available Models
+    app.get('/models', async (req, res) => {
+        if (!cdpConnection) return res.status(503).json({ error: 'CDP disconnected', models: [] });
+        const result = await getAvailableModels(cdpConnection);
         res.json(result);
     });
 
