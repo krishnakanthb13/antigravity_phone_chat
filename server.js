@@ -426,6 +426,17 @@ async function captureSnapshot(cdp) {
         
         const html = clone.outerHTML;
         
+        const parentClasses = [];
+        try {
+            let cur = cascade.parentElement;
+            while (cur && cur.tagName !== 'HTML') {
+                if (cur.className) {
+                    parentClasses.push(cur.className);
+                }
+                cur = cur.parentElement;
+            }
+        } catch(e) {}
+
         const rules = [];
         for (const sheet of document.styleSheets) {
             try {
@@ -439,6 +450,7 @@ async function captureSnapshot(cdp) {
         return {
             html: html,
             css: allCSS,
+            parentClasses: parentClasses,
             backgroundColor: cascadeStyles.backgroundColor,
             color: cascadeStyles.color,
             fontFamily: cascadeStyles.fontFamily,

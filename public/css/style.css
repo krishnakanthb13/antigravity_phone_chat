@@ -304,11 +304,16 @@ body {
     overflow-x: hidden;
     position: relative;
     background: var(--bg-app);
+    display: flex;
+    flex-direction: column;
 }
 
 .chat-content {
     min-height: 100%;
     padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
 }
 
 .loading-state {

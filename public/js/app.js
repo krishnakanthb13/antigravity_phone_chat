@@ -424,6 +424,11 @@ async function loadSnapshot() {
         styleTag.textContent = darkModeOverrides;
         chatContent.innerHTML = data.html;
 
+        // Apply parent classes to body so VS Code / theme styles apply correctly
+        if (data.parentClasses && data.parentClasses.length > 0) {
+            document.body.className = data.parentClasses.join(' ');
+        }
+
 
         // Add mobile copy buttons to all code blocks
         addMobileCopyButtons();
