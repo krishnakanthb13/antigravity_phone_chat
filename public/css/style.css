@@ -894,3 +894,226 @@ textarea::-webkit-scrollbar {
 .mt-4 {
     margin-top: 24px;
 }
+
+/* Workspace Button */
+.workspace-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.workspace-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.workspace-btn:active {
+    transform: scale(0.95);
+}
+
+.workspace-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    fill: none;
+}
+
+/* Attach Button */
+.attach-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    align-self: flex-end;
+    margin-bottom: 2px;
+}
+
+.attach-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.attach-btn:active {
+    transform: scale(0.92);
+}
+
+.attach-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.attach-btn.uploading {
+    animation: spin-once 1s linear infinite;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* Workspace Grid */
+.workspace-grid {
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 16px;
+    align-content: start;
+}
+
+.workspace-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 12px;
+    transition: all 0.2s;
+}
+
+.workspace-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.workspace-item:active {
+    transform: scale(0.95);
+}
+
+.workspace-item svg {
+    width: 40px;
+    height: 40px;
+    color: var(--accent);
+}
+
+.workspace-item.file svg {
+    color: var(--text-muted);
+}
+
+.workspace-item span {
+    font-size: 12px;
+    text-align: center;
+    word-break: break-all;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    color: var(--text-main);
+}
+
+/* Upload Queue */
+.upload-queue {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0 16px;
+    margin-bottom: 8px;
+}
+
+.upload-queue:empty {
+    display: none;
+}
+
+.queue-chip {
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: var(--text-main);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.queue-chip .remove-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+}
+
+.queue-chip .remove-btn:hover {
+    color: var(--error);
+}
+
+.queue-chip .remove-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Workspace Search */
+.workspace-search-container {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.workspace-search-container .search-icon {
+    position: absolute;
+    left: 28px;
+    width: 18px;
+    height: 18px;
+    color: var(--text-muted);
+}
+
+.workspace-search-container input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-main);
+    border-radius: 20px;
+    padding: 8px 12px 8px 36px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.workspace-search-container input:focus {
+    border-color: var(--accent);
+}
+
+/* File Viewer */
+.file-viewer-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.file-viewer-content pre {
+    background: var(--bg-panel) !important;
+    padding: 16px !important;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    margin: 0 !important;
+}
+
+.file-viewer-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 0 auto;
+    display: block;
+}

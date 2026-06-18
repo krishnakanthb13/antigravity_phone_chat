@@ -46,4 +46,4 @@ pyvenv.cfg
 include/
 lib/
 lib64/
-share/
+share/uploads/

@@ -7,6 +7,9 @@ import { WebSocketServer } from 'ws';
 import http from 'http';
 import https from 'https';
 import fs from 'fs';
+import fsPromises from 'fs/promises';
+import path from 'path';
+import multer from 'multer';
 import os from 'os';
 import WebSocket from 'ws';
 import { fileURLToPath } from 'url';
@@ -1732,7 +1735,7 @@ async function createServer() {
         }
 
         // If it's an API request, return 401, otherwise redirect to login
-        if (req.xhr || req.headers.accept?.includes('json') || req.path.startsWith('/snapshot') || req.path.startsWith('/send')) {
+        if (req.xhr || req.headers.accept?.includes('json') || req.path.startsWith('/snapshot') || req.path.startsWith('/send') || req.path.startsWith('/api/')) {
             res.status(401).json({ error: 'Unauthorized' });
         } else {
             res.redirect('/login.html');
@@ -2201,6 +2204,93 @@ async function main() {
             if (!cdpConnection) return res.json({ hasChat: false, hasMessages: false, editorFound: false });
             const result = await hasChatOpen(cdpConnection);
             res.json(result);
+        });
+
+        // Set up Multer for file uploads
+        const storage = multer.diskStorage({
+            destination: function (req, file, cb) {
+                const workspacePath = process.env.ANTIGRAVITY_WORKSPACE_PATH || __dirname;
+                const destDir = join(workspacePath, 'uploads');
+                fs.mkdirSync(destDir, { recursive: true });
+                cb(null, destDir);
+            },
+            filename: function (req, file, cb) {
+                const ext = path.extname(file.originalname);
+                const name = path.basename(file.originalname, ext);
+                cb(null, `${name}-${Date.now()}${ext}`);
+            }
+        });
+        const upload = multer({ 
+            storage: storage,
+            limits: { fileSize: 500 * 1024 * 1024 } // 500MB limit for videos and large files
+        });
+
+        app.get('/api/workspace', async (req, res) => {
+            try {
+                const workspacePath = process.env.ANTIGRAVITY_WORKSPACE_PATH;
+                if (!workspacePath) return res.status(400).json({ error: 'ANTIGRAVITY_WORKSPACE_PATH not configured' });
+
+                const subPath = req.query.path || '';
+                const targetPath = path.resolve(workspacePath, subPath);
+
+                // Prevent directory traversal
+                if (!targetPath.startsWith(path.resolve(workspacePath))) {
+                    return res.status(403).json({ error: 'Access denied' });
+                }
+
+                const entries = await fsPromises.readdir(targetPath, { withFileTypes: true });
+                const files = entries.map(dirent => ({
+                    name: dirent.name,
+                    isDirectory: dirent.isDirectory(),
+                    ext: path.extname(dirent.name)
+                }));
+
+                // Sort: Directories first, then alphabetical
+                files.sort((a, b) => {
+                    if (a.isDirectory === b.isDirectory) {
+                        return a.name.localeCompare(b.name);
+                    }
+                    return a.isDirectory ? -1 : 1;
+                });
+
+                res.json({
+                    currentPath: targetPath,
+                    relative: path.relative(workspacePath, targetPath),
+                    files
+                });
+            } catch (err) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        app.post('/api/upload', upload.array('files', 10), (req, res) => {
+            if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files uploaded' });
+            res.json({ success: true, files: req.files });
+        });
+
+        app.get('/api/file', async (req, res) => {
+            try {
+                const workspacePath = process.env.ANTIGRAVITY_WORKSPACE_PATH;
+                if (!workspacePath) return res.status(400).json({ error: 'Workspace path not configured' });
+                
+                const subPath = req.query.path;
+                if (!subPath) return res.status(400).json({ error: 'Path parameter required' });
+
+                const targetPath = path.resolve(workspacePath, subPath);
+
+                // Prevent directory traversal
+                if (!targetPath.startsWith(path.resolve(workspacePath))) {
+                    return res.status(403).json({ error: 'Access denied' });
+                }
+
+                // Check if file exists and is a file
+                const stat = await fsPromises.stat(targetPath);
+                if (!stat.isFile()) return res.status(400).json({ error: 'Not a file' });
+
+                res.sendFile(targetPath);
+            } catch (err) {
+                res.status(500).json({ error: err.message });
+            }
         });
 
         // Kill any existing process on the port before starting
