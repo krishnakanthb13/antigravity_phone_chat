@@ -28,7 +28,7 @@ First off, thank you for considering contributing to Antigravity Phone Connect! 
 1.  Clone your fork: `git clone https://github.com/krishnakanthb13/antigravity_phone_chat.git`
 2.  Install dependencies: `npm install`
 3.  **(Optional)** Generate SSL certificates: `node generate_ssl.js`
-4.  Start Antigravity with: `antigravity . --remote-debugging-port=9000`
+4.  Start Antigravity with: `agy . --remote-debugging-port=9000`
 5.  Run the monitor: `node server.js`
 6.  Access from phone: Use the URL shown in terminal (http or https)
 

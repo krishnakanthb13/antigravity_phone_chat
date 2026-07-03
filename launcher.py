@@ -357,7 +357,7 @@ def main():
                                 print("   The server cannot see your editor.")
                                 print("   1. Close Antigravity.")
                                 print("   2. Re-open it with the debug flag:")
-                                print("      antigravity . --remote-debugging-port=9000")
+                                print("      agy . --remote-debugging-port=9000")
                                 print("   3. Or use the 'Open with Antigravity (Debug)' context menu.")
                                 print("!"*50 + "\n")
                                 cdp_warning_shown = True

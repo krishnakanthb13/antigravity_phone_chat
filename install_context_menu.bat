@@ -12,7 +12,7 @@ echo in your Windows Right-Click context menu.
 echo.
 echo WHAT IT DOES:
 echo   - Adds/Removes a new option when you right-click a folder
-echo   - Clicking it will run: antigravity . --remote-debugging-port=9000
+echo   - Clicking it will run: agy . --remote-debugging-port=9000
 echo   - This launches Antigravity with debugging enabled for Phone Connect
 echo.
 echo REQUIREMENTS:
@@ -68,12 +68,12 @@ echo [INSTALL] Adding registry entries...
 :: Add to folder background (right-click empty space in folder)
 powershell -Command "Start-Process reg -ArgumentList 'add \"HKEY_CLASSES_ROOT\Directory\Background\shell\AntigravityDebug\" /ve /d \"Open with Antigravity (Debug)\" /f' -Verb RunAs -Wait" 2>nul
 powershell -Command "Start-Process reg -ArgumentList 'add \"HKEY_CLASSES_ROOT\Directory\Background\shell\AntigravityDebug\" /v Icon /d \"%~dp0assets\antigravity.ico\" /f' -Verb RunAs -Wait" 2>nul
-powershell -Command "Start-Process reg -ArgumentList 'add \"HKEY_CLASSES_ROOT\Directory\Background\shell\AntigravityDebug\command\" /ve /d \"cmd /c cd /d \\\"%%V\\\" ^&^& antigravity . --remote-debugging-port=9000\" /f' -Verb RunAs -Wait" 2>nul
+powershell -Command "Start-Process reg -ArgumentList 'add \"HKEY_CLASSES_ROOT\Directory\Background\shell\AntigravityDebug\command\" /ve /d \"cmd /c cd /d \\\"%%V\\\" ^&^& agy . --remote-debugging-port=9000\" /f' -Verb RunAs -Wait" 2>nul
 
 :: Add to folder itself (right-click on a folder)
 powershell -Command "Start-Process reg -ArgumentList 'add \"HKEY_CLASSES_ROOT\Directory\shell\AntigravityDebug\" /ve /d \"Open with Antigravity (Debug)\" /f' -Verb RunAs -Wait" 2>nul
 powershell -Command "Start-Process reg -ArgumentList 'add \"HKEY_CLASSES_ROOT\Directory\shell\AntigravityDebug\" /v Icon /d \"%~dp0assets\antigravity.ico\" /f' -Verb RunAs -Wait" 2>nul
-powershell -Command "Start-Process reg -ArgumentList 'add \"HKEY_CLASSES_ROOT\Directory\shell\AntigravityDebug\command\" /ve /d \"cmd /c cd /d \\\"%%1\\\" ^&^& antigravity . --remote-debugging-port=9000\" /f' -Verb RunAs -Wait" 2>nul
+powershell -Command "Start-Process reg -ArgumentList 'add \"HKEY_CLASSES_ROOT\Directory\shell\AntigravityDebug\command\" /ve /d \"cmd /c cd /d \\\"%%1\\\" ^&^& agy . --remote-debugging-port=9000\" /f' -Verb RunAs -Wait" 2>nul
 
 echo.
 echo [SUCCESS] Context menu installed!
