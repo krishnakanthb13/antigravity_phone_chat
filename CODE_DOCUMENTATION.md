@@ -149,7 +149,7 @@ The server automatically detects SSL certificates and enables HTTPS:
 ### Required Startup Sequence:
 
 1. **Start Antigravity in Debug Mode**
-   - Launch Antigravity with: `antigravity . --remote-debugging-port=9000`
+   - Launch Antigravity with: `agy . --remote-debugging-port=9000`
    - Or use the context menu: Right-click folder → "Open with Antigravity (Debug)"
 
 2. **Open or Start a Chat**
