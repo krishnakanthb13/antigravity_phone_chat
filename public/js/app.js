@@ -936,6 +936,8 @@ async function syncScrollToDesktop() {
 
 let isAtAbsoluteTop = false;
 let topHitTimeout = null;
+let ceilingReached = false;
+let lastKnownCurrent = -1;
 
 function updateLoaderVisibility(container) {
     const loader = document.getElementById('infiniteScrollLoader');
@@ -953,9 +955,18 @@ function updateLoaderVisibility(container) {
                 const current = parseInt(match[1].replace(/,/g, ''), 10);
                 const total = parseInt(match[2].replace(/,/g, ''), 10);
                 if (current >= total) canLoadMore = false;
+                
+                if (lastKnownCurrent !== -1 && current > lastKnownCurrent) {
+                    ceilingReached = false;
+                }
+                lastKnownCurrent = current;
             }
         }
     } else {
+        canLoadMore = false;
+    }
+    
+    if (ceilingReached) {
         canLoadMore = false;
     }
 
@@ -1023,6 +1034,7 @@ chatContent.addEventListener('scroll', (e) => {
         if (topHitTimeout === null && !isAtAbsoluteTop) {
             topHitTimeout = setTimeout(() => {
                 isAtAbsoluteTop = true;
+                ceilingReached = true;
                 updateLoaderVisibility(container);
             }, 1500); // Wait 1.5s for desktop app to load older messages
         }
