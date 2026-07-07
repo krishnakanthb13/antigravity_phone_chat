@@ -953,9 +953,6 @@ function updateLoaderVisibility(container) {
                 const current = parseInt(match[1].replace(/,/g, ''), 10);
                 const total = parseInt(match[2].replace(/,/g, ''), 10);
                 if (current >= total) canLoadMore = false;
-                if (loader && loader.lastChild && loader.lastChild.nodeType === Node.TEXT_NODE) loader.lastChild.textContent = ` Loading... (${current}/${total})`;
-            } else {
-                if (loader && loader.lastChild && loader.lastChild.nodeType === Node.TEXT_NODE) loader.lastChild.textContent = ` Loading... (${label})`;
             }
         }
     } else {
