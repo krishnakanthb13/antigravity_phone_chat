@@ -11,13 +11,13 @@ const stopBtn = document.getElementById('stopBtn');
 const newChatBtn = document.getElementById('newChatBtn');
 const historyBtn = document.getElementById('historyBtn');
 
-const modeBtn = document.getElementById('modeBtn');
-const modelBtn = document.getElementById('modelBtn');
+const modeBtn = document.getElementById('modeBtn') || { classList: { toggle: () => {} }, addEventListener: () => {} };
+const modelBtn = document.getElementById('modelBtn') || { classList: { toggle: () => {} }, addEventListener: () => {} };
 const modalOverlay = document.getElementById('modalOverlay');
 const modalList = document.getElementById('modalList');
 const modalTitle = document.getElementById('modalTitle');
-const modeText = document.getElementById('modeText');
-const modelText = document.getElementById('modelText');
+const modeText = document.getElementById('modeText') || { textContent: '' };
+const modelText = document.getElementById('modelText') || { textContent: '' };
 const historyLayer = document.getElementById('historyLayer');
 const historyList = document.getElementById('historyList');
 
@@ -211,9 +211,10 @@ async function loadSnapshot() {
         const data = await response.json();
 
         // Capture scroll state BEFORE updating content
-        const scrollPos = chatContainer.scrollTop;
-        const scrollHeight = chatContainer.scrollHeight;
-        const clientHeight = chatContainer.clientHeight;
+        const scrollerBefore = getScrollContainer();
+        const scrollPos = scrollerBefore.scrollTop;
+        const scrollHeight = scrollerBefore.scrollHeight;
+        const clientHeight = scrollerBefore.clientHeight;
         const isNearBottom = scrollHeight - scrollPos - clientHeight < 120;
         const isUserScrollLocked = Date.now() < userScrollLockUntil;
 
@@ -243,25 +244,92 @@ async function loadSnapshot() {
             '    --border-color: #334155;\n' +
             '}\n' +
             '\n' +
-            '#conversation, #chat, #cascade {\n' +
+            '/* Hide the desktop input box and tasks tray since they are non-functional in the proxy */\n' +
+            '#antigravity\\.agentSidePanelInputBox, [data-testid="conversation-view"] > div:has([aria-label="Message input"]) {\n' +
+            '    display: none !important;\n' +
+            '}\n' +
+            '\n' +
+            '[data-testid="conversation-view"], #conversation, #chat, #cascade {\n' +
             '    background-color: transparent !important;\n' +
             '    color: var(--text-main) !important;\n' +
             '    font-family: \'Inter\', system-ui, sans-serif !important;\n' +
             '    position: relative !important;\n' +
             '    height: auto !important;\n' +
             '    width: 100% !important;\n' +
+            '    overflow: visible !important;\n' +
             '}\n' +
             '\n' +
-            '/* Fix stacking BUT preserve absolute/fixed positioning for dropdowns */\n' +
-            '#conversation > div, #chat > div, #cascade > div {\n' +
-            '    position: static !important;\n' +
+            '/* Let chatContainer handle all scrolling so its scrollTop survives innerHTML replacement! */\n' +
+
+            '#chatContainer {\n' +
+            '    overflow: hidden !important; /* Move scroll handling to desktop virtual container */\n' +
             '}\n' +
-            '/* Preserve absolute positioning needed for dropdowns, tooltips, popups */\n' +
-            '[style*="position: absolute"], [style*="position: fixed"],\n' +
-            '[data-headlessui-state], [id*="headlessui"] {\n' +
-            '    position: absolute !important;\n' +
+            '#root > div {\n' +
+            '    flex: 1 !important;\n' +
+            '    height: 100% !important;\n' +
+            '    padding: 0 !important;\n' +
+            '    padding-bottom: 24px !important;\n' +
+            '}\n' +
+            '#chatContent {\n' +
+            '    display: flex !important;\n' +
+            '    flex-direction: column !important;\n' +
+            '    flex: 1 !important;\n' +
+            '}\n' +
+            '[data-testid="conversation-view"], #conversation, #chat, #cascade {\n' +
+            '    flex: 1 !important;\n' +
+            '    height: 100% !important;\n' +
+            '    overflow: hidden !important;\n' +
+            '}\n' +
+            '/* EXCEPT code blocks, keep them horizontally scrollable */\n' +
+            '[data-testid="conversation-view"] pre, [data-testid="conversation-view"] code {\n' +
+            '    overflow-x: auto !important;\n' +
             '}\n' +
             '\n' +
+            '/* Prevent sticky elements from floating and blocking the mobile screen, EXCEPT tasks block */\n' +
+            '[data-testid="conversation-view"] .sticky:not(.backdrop-blur-md) {\n' +
+            '    position: relative !important;\n' +
+            '    top: auto !important;\n' +
+            '    z-index: 1 !important;\n' +
+            '}\n' +
+            '\n' +
+            '/* Move the Tasks Running block to the bottom of the chat window */\n' +
+            '[data-testid="conversation-view"] .sticky.backdrop-blur-md {\n' +
+            '    position: fixed !important;\n' +
+            '    top: auto !important;\n' +
+            '    bottom: 24px !important;\n' +
+            '    left: 50% !important;\n' +
+            '    transform: translateX(-50%) !important;\n' +
+            '    width: calc(100% - 32px) !important;\n' +
+            '    max-width: 400px !important;\n' +
+            '    z-index: 100 !important;\n' +
+            '    border-radius: 12px !important;\n' +
+            '    background: var(--bg-app) !important;\n' +
+            '    box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;\n' +
+            '    border: 1px solid var(--border-color) !important;\n' +
+            '    padding: 12px !important;\n' +
+            '    margin-top: 0 !important;\n' +
+            '}\n' +
+            '\n' +
+            '/* Custom Semi-Transparent Scrollbar for Chat Window */\n' +
+            '[data-testid="conversation-view"] * {\n' +
+            '    scrollbar-color: rgba(255, 255, 255, 0.2) transparent !important;\n' +
+            '    scrollbar-width: thin !important;\n' +
+            '}\n' +
+            '[data-testid="conversation-view"] *::-webkit-scrollbar {\n' +
+            '    width: 6px !important;\n' +
+            '}\n' +
+            '[data-testid="conversation-view"] *::-webkit-scrollbar-track {\n' +
+            '    background: transparent !important;\n' +
+            '}\n' +
+            '[data-testid="conversation-view"] *::-webkit-scrollbar-thumb {\n' +
+            '    background: rgba(255, 255, 255, 0.2) !important;\n' +
+            '    border-radius: 10px !important;\n' +
+            '}\n' +
+            '[data-testid="conversation-view"] *::-webkit-scrollbar-thumb:hover {\n' +
+            '    background: rgba(255, 255, 255, 0.4) !important;\n' +
+            '}\n' +
+            '\n' +
+            '[data-testid="conversation-view"] p, [data-testid="conversation-view"] h1, [data-testid="conversation-view"] h2, [data-testid="conversation-view"] h3, [data-testid="conversation-view"] h4, [data-testid="conversation-view"] h5, [data-testid="conversation-view"] span, [data-testid="conversation-view"] div, [data-testid="conversation-view"] li,\n' +
             '#conversation p, #chat p, #cascade p, #conversation h1, #chat h1, #cascade h1, #conversation h2, #chat h2, #cascade h2, #conversation h3, #chat h3, #cascade h3, #conversation h4, #chat h4, #cascade h4, #conversation h5, #chat h5, #cascade h5, #conversation span, #chat span, #cascade span, #conversation div, #chat div, #cascade div, #conversation li, #chat li, #cascade li {\n' +
             '    color: inherit !important;\n' +
             '}\n' +
@@ -272,7 +340,7 @@ async function loadSnapshot() {
             '    color: #e2e8f0 !important;\n' +
             '}\n' +
             '\n' +
-            '#conversation a, #chat a, #cascade a {\n' +
+            '[data-testid="conversation-view"] a, #conversation a, #chat a, #cascade a {\n' +
             '    color: #60a5fa !important;\n' +
             '    text-decoration: underline;\n' +
             '}\n' +
@@ -422,25 +490,33 @@ async function loadSnapshot() {
             '    background-color: transparent !important;\n' +
             '}';
         styleTag.textContent = darkModeOverrides;
-        chatContent.innerHTML = data.html;
-
+        
+        if (!updateDOMPreservingScroll(chatContent, data.html)) {
+            chatContent.innerHTML = data.html;
+        }
 
         // Add mobile copy buttons to all code blocks
         addMobileCopyButtons();
 
+        // Setup resize observer for dynamic content loading (images/fonts)
+        setupResizeObserver();
+
         // Smart scroll behavior: respect user scroll, only auto-scroll when appropriate
-        if (isUserScrollLocked) {
-            // User recently scrolled - try to maintain their approximate position
-            // Use percentage-based restoration for better accuracy
-            const scrollPercent = scrollHeight > 0 ? scrollPos / scrollHeight : 0;
-            const newScrollPos = chatContainer.scrollHeight * scrollPercent;
-            chatContainer.scrollTop = newScrollPos;
-        } else if (isNearBottom || scrollPos === 0) {
-            // User was at bottom or hasn't scrolled - auto scroll to bottom
-            scrollToBottom();
-        } else {
-            // Preserve exact scroll position
-            chatContainer.scrollTop = scrollPos;
+        const scrollerAfter = getScrollContainer();
+        if (scrollerAfter) {
+            if (isUserScrollLocked) {
+                shouldStickToBottom = false;
+            } else if (isNearBottom) {
+                scrollToBottom();
+            } else {
+                shouldStickToBottom = false;
+            }
+        }
+        
+        // Hide loader if we are no longer at the top
+        const loader = document.getElementById('infiniteScrollLoader');
+        if (loader && scrollerAfter.scrollTop >= 50) {
+            loader.classList.add('hidden');
         }
 
     } catch (err) {
@@ -600,11 +676,51 @@ async function copyToClipboard(text) {
     return false;
 }
 
-function scrollToBottom() {
-    chatContainer.scrollTo({
-        top: chatContainer.scrollHeight,
-        behavior: 'smooth'
+let scrollObserver = null;
+let shouldStickToBottom = true;
+
+function setupResizeObserver() {
+    const scroller = getScrollContainer();
+    if (!scroller) return;
+    
+    if (scrollObserver) scrollObserver.disconnect();
+    
+    // We observe the first child of the scroller, which is the actual content wrapper
+    const innerContent = scroller.firstElementChild;
+    if (!innerContent) return;
+    
+    scrollObserver = new ResizeObserver(() => {
+        if (!scroller) return;
+        if (shouldStickToBottom) {
+            // Instant scroll, no animation
+            scroller.scrollTop = scroller.scrollHeight;
+        }
     });
+    
+    scrollObserver.observe(innerContent);
+}
+
+// Add helper to find active scroll container
+function getScrollContainer() {
+    // The desktop DOM structure wraps the scrolling virtual list in a few layers
+    const grandchild = document.querySelector('[data-testid="conversation-view"] > div > div');
+    if (grandchild && grandchild.scrollHeight > grandchild.clientHeight) return grandchild;
+    
+    const child = document.querySelector('[data-testid="conversation-view"] > div');
+    if (child && child.scrollHeight > child.clientHeight) return child;
+    
+    const root = document.querySelector('[data-testid="conversation-view"]');
+    if (root && root.scrollHeight > root.clientHeight) return root;
+    
+    return chatContainer;
+}
+
+function scrollToBottom() {
+    const container = getScrollContainer();
+    if (container) {
+        shouldStickToBottom = true;
+        container.scrollTop = container.scrollHeight;
+    }
 }
 
 // --- Inputs ---
@@ -705,14 +821,98 @@ if (supportOverlay) {
     });
 }
 
-// --- Scroll Sync to Desktop ---
+// --- DOM Morphing for Scroll Jitter Fix ---
+// Replaces DOM without destroying the scroll container, preserving native touch momentum!
+function updateDOMPreservingScroll(container, newHTML) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(newHTML, 'text/html');
+    
+    const currentScroll = getScrollContainer();
+    const newScroll = doc.querySelector('.overflow-y-auto, [class*="scroll"], [data-testid="conversation-view"] > div > div');
+    
+    if (!currentScroll || !newScroll || currentScroll === chatContainer) {
+        return false;
+    }
+    
+    const scrollPos = currentScroll.scrollTop;
+    const scrollHeight = currentScroll.scrollHeight;
+    const clientHeight = currentScroll.clientHeight;
+    
+    function morph(oldEl, newEl) {
+        if (!oldEl || !newEl) return;
+        
+        if (oldEl === currentScroll) {
+            oldEl.innerHTML = newEl.innerHTML;
+            if (newEl.attributes) {
+                for (let i = 0; i < newEl.attributes.length; i++) {
+                    const attr = newEl.attributes[i];
+                    if (oldEl.getAttribute(attr.name) !== attr.value) {
+                        oldEl.setAttribute(attr.name, attr.value);
+                    }
+                }
+            }
+            return;
+        }
+        
+        if (!oldEl.contains(currentScroll) && oldEl !== container) {
+            oldEl.parentNode.replaceChild(newEl.cloneNode(true), oldEl);
+            return;
+        }
+        
+        if (oldEl.attributes && newEl.attributes) {
+            for (let i = 0; i < newEl.attributes.length; i++) {
+                const attr = newEl.attributes[i];
+                if (oldEl.getAttribute(attr.name) !== attr.value) {
+                    oldEl.setAttribute(attr.name, attr.value);
+                }
+            }
+        }
+        
+        const oldChildren = Array.from(oldEl.childNodes);
+        const newChildren = Array.from(newEl.childNodes);
+        
+        for (let i = 0; i < Math.max(oldChildren.length, newChildren.length); i++) {
+            if (!oldChildren[i]) {
+                oldEl.appendChild(newChildren[i].cloneNode(true));
+            } else if (!newChildren[i]) {
+                oldEl.removeChild(oldChildren[i]);
+            } else if (oldChildren[i].nodeType !== newChildren[i].nodeType || oldChildren[i].nodeName !== newChildren[i].nodeName) {
+                oldEl.replaceChild(newChildren[i].cloneNode(true), oldChildren[i]);
+            } else if (oldChildren[i].nodeType === Node.TEXT_NODE) {
+                if (oldChildren[i].nodeValue !== newChildren[i].nodeValue) {
+                    oldChildren[i].nodeValue = newChildren[i].nodeValue;
+                }
+            } else {
+                morph(oldChildren[i], newChildren[i]);
+            }
+        }
+    }
+    
+    morph(container, doc.body);
+    
+    const distanceFromBottom = scrollHeight - scrollPos - clientHeight;
+    const newScrollPos = currentScroll.scrollHeight - currentScroll.clientHeight - distanceFromBottom;
+    
+    if (isUserScrollLocked) {
+        currentScroll.scrollTop = Math.max(0, newScrollPos);
+    } else if (isNearBottom) {
+        currentScroll.scrollTop = currentScroll.scrollHeight;
+    } else {
+        currentScroll.scrollTop = Math.max(0, newScrollPos);
+    }
+    
+    return true;
+}
+
+// --- Snapshot Loading & Desktop Sync ---
 let scrollSyncTimeout = null;
 let lastScrollSync = 0;
 const SCROLL_SYNC_DEBOUNCE = 150; // ms between scroll syncs
 let snapshotReloadPending = false;
 
 async function syncScrollToDesktop() {
-    const scrollPercent = chatContainer.scrollTop / (chatContainer.scrollHeight - chatContainer.clientHeight);
+    const container = getScrollContainer();
+    const scrollPercent = container.scrollTop / (container.scrollHeight - container.clientHeight);
     try {
         await fetchWithAuth('/remote-scroll', {
             method: 'POST',
@@ -734,13 +934,86 @@ async function syncScrollToDesktop() {
     }
 }
 
-chatContainer.addEventListener('scroll', () => {
+let isAtAbsoluteTop = false;
+let topHitTimeout = null;
+
+function updateLoaderVisibility(container) {
+    const loader = document.getElementById('infiniteScrollLoader');
+    if (!loader) return;
+     // Check if we can actually load more messages
+    let canLoadMore = true;
+    const loadBtn = chatContent.querySelector('[aria-label^="Load older messages"]');
+    if (loadBtn) {
+        if (loadBtn.getAttribute('aria-disabled') === 'true' || loadBtn.disabled || loadBtn.hasAttribute('disabled')) {
+            canLoadMore = false;
+        } else {
+            const label = loadBtn.getAttribute('aria-label');
+            const match = label.match(/showing ([\d,]+) of ([\d,]+)/i);
+            if (match) {
+                const current = parseInt(match[1].replace(/,/g, ''), 10);
+                const total = parseInt(match[2].replace(/,/g, ''), 10);
+                if (current >= total) canLoadMore = false;
+                if (loader && loader.lastChild && loader.lastChild.nodeType === Node.TEXT_NODE) loader.lastChild.textContent = ` Loading... (${current}/${total})`;
+            } else {
+                if (loader && loader.lastChild && loader.lastChild.nodeType === Node.TEXT_NODE) loader.lastChild.textContent = ` Loading... (${label})`;
+            }
+        }
+    } else {
+        canLoadMore = false;
+    }
+
+    if (!isAtAbsoluteTop && canLoadMore && container && container.scrollTop < 50) {
+        if (loader) loader.classList.remove('hidden');
+    } else {
+        if (loader) loader.classList.add('hidden');
+    }
+}
+
+// Use event capture to intercept scroll events from the dynamically injected virtualized container
+chatContent.addEventListener('scroll', (e) => {
+    if (!e.isTrusted) return; // Ignore programmatic scroll events caused by DOM replacement
+    const container = e.target;
+    // Only process vertical scrolling containers
+    if (!container || !container.scrollHeight) return;
+    
     userIsScrolling = true;
     // Set a lock to prevent auto-scroll jumping for a few seconds
     userScrollLockUntil = Date.now() + USER_SCROLL_LOCK_DURATION;
-    clearTimeout(idleTimer);
+    
+    // Calculate if they are at the bottom of THIS specific container
+    const scrollBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    let isNearBottom = scrollBottom < 50;
+    shouldStickToBottom = isNearBottom;
 
-    const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 120;
+    // Check if we can actually load more messages
+    let canLoadMore = true;
+    const loadBtn = chatContent.querySelector('[aria-label^="Load older messages"]');
+    if (loadBtn) {
+        if (loadBtn.getAttribute('aria-disabled') === 'true') {
+            canLoadMore = false;
+        } else {
+            const label = loadBtn.getAttribute('aria-label');
+            const match = label.match(/showing ([\d,]+) of ([\d,]+)/i);
+            if (match) {
+                const current = parseInt(match[1].replace(/,/g, ''), 10);
+                const total = parseInt(match[2].replace(/,/g, ''), 10);
+                if (current >= total) canLoadMore = false;
+            }
+        }
+    } else {
+        canLoadMore = false;
+    }
+
+    // Show loading spinner when scrolling to top (loading history)
+    const loader = document.getElementById('infiniteScrollLoader');
+    if (!isAtAbsoluteTop && canLoadMore && container.scrollTop === 0 && container.scrollHeight > container.clientHeight) {
+        if (loader) loader.classList.remove('hidden');
+    } else if (isAtAbsoluteTop || !canLoadMore) {
+        if (loader) loader.classList.add('hidden');
+    }
+
+    clearTimeout(idleTimer);
+    
     if (isNearBottom) {
         scrollToBottomBtn.classList.remove('show');
         // If user scrolled to bottom, clear the lock so auto-scroll works
@@ -748,6 +1021,28 @@ chatContainer.addEventListener('scroll', () => {
     } else {
         scrollToBottomBtn.classList.add('show');
     }
+    
+    if (container.scrollTop < 50) {
+        if (topHitTimeout === null && !isAtAbsoluteTop) {
+            topHitTimeout = setTimeout(() => {
+                isAtAbsoluteTop = true;
+                updateLoaderVisibility(container);
+            }, 1500); // Wait 1.5s for desktop app to load older messages
+        }
+    } else {
+        if (topHitTimeout !== null) {
+            clearTimeout(topHitTimeout);
+            topHitTimeout = null;
+        }
+        // Only reset isAtAbsoluteTop if they scroll significantly down, 
+        // to prevent rubber-banding at the top from flashing the chip again.
+        if (container.scrollTop > 300) {
+            isAtAbsoluteTop = false;
+        }
+    }
+    
+    // Toggle infinite scroll loader at the top
+    updateLoaderVisibility(container);
 
     // Debounced scroll sync to desktop
     const now = Date.now();
@@ -761,7 +1056,7 @@ chatContainer.addEventListener('scroll', () => {
         userIsScrolling = false;
         autoRefreshEnabled = true;
     }, 5000);
-});
+}, true); // USE CAPTURE
 
 scrollToBottomBtn.addEventListener('click', () => {
     userIsScrolling = false;

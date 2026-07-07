@@ -1,34 +1,27 @@
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0');
-@import url('https://fonts.googleapis.com/css2?family=Google+Symbols');
-
-.google-symbols, .material-symbols-outlined {
-    font-family: 'Material Symbols Outlined', 'Google Symbols', sans-serif !important;
-    font-weight: normal;
-    font-style: normal;
-    display: inline-block;
-    line-height: 1;
-    text-transform: none;
-    letter-spacing: normal;
-    word-wrap: normal;
-    white-space: nowrap;
-    direction: ltr;
-}
-
 :root {
-    /* Premium Dark Theme Tokens */
-    --bg-app: #090e17;
-    --bg-panel: #131c2f;
-    --bg-input: #1e293b;
-    --border: rgba(255, 255, 255, 0.08);
+    /* Premium Dark Theme Tokens (Slate Palette) */
+    --bg-app: #0f172a;
+    /* Slate 950 */
+    --bg-panel: #1e293b;
+    /* Slate 800 */
+    --bg-input: #334155;
+    /* Slate 700 */
+    --border: #334155;
+    /* Slate 700 */
     --text-main: #f8fafc;
+    /* Slate 50 */
     --text-muted: #94a3b8;
-    --accent: #6366f1;
-    --accent-hover: #4f46e5;
-    --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
-    --accent-glow: rgba(139, 92, 246, 0.25);
+    /* Slate 400 */
+    --accent: #3b82f6;
+    /* Blue 500 */
+    --accent-hover: #2563eb;
+    /* Blue 600 */
     --success: #22c55e;
-    --warning: #f59e0b;
+    /* Green 500 */
+    --warning: #eab308;
+    /* Yellow 500 */
     --error: #ef4444;
+    /* Red 500 */
 }
 
 * {
@@ -75,19 +68,12 @@ body {
 }
 
 .header h1 {
-    font-size: 17px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 600;
     color: var(--text-main);
     display: flex;
     align-items: center;
     gap: 8px;
-    letter-spacing: -0.02em;
-}
-
-.header h1 span {
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
 }
 
 .header-controls {
@@ -148,22 +134,22 @@ body {
 
 /* New Chat Button */
 .new-chat-btn {
-    background: var(--accent-gradient);
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
     border: none;
     color: #fff;
     cursor: pointer;
-    padding: 7px;
-    border-radius: 8px;
+    padding: 6px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 4px 12px var(--accent-glow);
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .new-chat-btn:hover {
-    transform: scale(1.05) translateY(-1px);
-    box-shadow: 0 6px 16px var(--accent-glow);
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    transform: scale(1.05);
 }
 
 .new-chat-btn:active {
@@ -181,11 +167,11 @@ body {
 /* History Button */
 .history-btn {
     background: transparent;
-    border: none;
+    border: 1px solid var(--border);
     color: var(--text-muted);
     cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
+    padding: 5px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -195,6 +181,7 @@ body {
 .history-btn:hover {
     color: var(--text-main);
     background: rgba(255, 255, 255, 0.1);
+    border-color: var(--text-muted);
 }
 
 .history-btn:active {
@@ -202,10 +189,10 @@ body {
 }
 
 .history-btn svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     stroke: currentColor;
-    stroke-width: 2.5;
+    stroke-width: 2;
     fill: none;
 }
 
@@ -221,12 +208,11 @@ body {
 }
 
 .empty-state-icon {
-    width: 72px;
-    height: 72px;
-    margin-bottom: 24px;
-    color: var(--accent);
-    opacity: 0.8;
-    filter: drop-shadow(0 0 16px var(--accent-glow));
+    width: 64px;
+    height: 64px;
+    margin-bottom: 20px;
+    color: var(--text-muted);
+    opacity: 0.5;
 }
 
 .empty-state h2 {
@@ -245,21 +231,21 @@ body {
 }
 
 .empty-state-btn {
-    background: var(--accent-gradient);
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
     color: #fff;
     border: none;
-    padding: 12px 28px;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 600;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 6px 20px var(--accent-glow);
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .empty-state-btn:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 24px var(--accent-glow);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
 .empty-state-btn:active {
@@ -343,41 +329,28 @@ body {
     padding: 12px 16px;
     overflow-x: auto;
     background: transparent;
-    /* Hide scrollbar for cleaner look */
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-.quick-actions::-webkit-scrollbar {
-    display: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .action-chip {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-main);
-    padding: 8px 18px;
-    border-radius: 24px;
+    padding: 8px 16px;
+    border-radius: 20px;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.action-chip:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .action-chip:active {
-    transform: scale(0.96);
-    background: rgba(255, 255, 255, 0.1);
+    transform: scale(0.95);
+    background: rgba(255, 255, 255, 0.15);
 }
 
 /* Input Section */
@@ -410,11 +383,10 @@ body {
 }
 
 .input-wrapper:focus-within {
-    border-color: rgba(139, 92, 246, 0.5);
-    /* Matching accent gradient start */
+    border-color: var(--accent);
     background-color: var(--bg-panel);
     /* Soft glow instead of hard shadow */
-    box-shadow: 0 0 16px var(--accent-glow) !important;
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.2) !important;
 }
 
 textarea {
@@ -466,26 +438,25 @@ textarea::-webkit-scrollbar {
 }
 
 .send-btn {
-    background: var(--accent-gradient);
+    background: transparent;
     border: none;
-    color: #ffffff;
-    width: 38px;
-    height: 38px;
+    color: var(--accent);
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.2s;
     flex-shrink: 0;
     align-self: flex-end;
+    /* Keep button at bottom when text wraps */
     margin-bottom: 2px;
-    box-shadow: 0 4px 12px var(--accent-glow);
 }
 
 .send-btn:hover {
-    transform: scale(1.05) translateY(-1px);
-    box-shadow: 0 6px 16px var(--accent-glow);
+    background: rgba(37, 99, 235, 0.1);
 }
 
 .send-btn svg {
@@ -501,12 +472,9 @@ textarea::-webkit-scrollbar {
 }
 
 .send-btn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
     background: var(--bg-input);
-    color: var(--text-muted);
-    box-shadow: none;
-    transform: none;
 }
 
 /* Floating Action Button (Scroll Down) */
@@ -598,10 +566,9 @@ textarea::-webkit-scrollbar {
 }
 
 .setting-chip.active {
-    background: var(--accent-glow);
-    color: #a78bfa;
-    /* lighter violet */
-    border-color: #8b5cf6;
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--accent);
+    border-color: var(--accent);
 }
 
 /* Modal */
