@@ -22,6 +22,8 @@ echo ===================================================
 echo.
 
 echo [STARTING] Launching via Unified Launcher...
+chcp 65001 >nul
+set PYTHONUTF8=1
 
 if not exist "venv\" (
     echo [INFO] Creating Python virtual environment...

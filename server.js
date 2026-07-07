@@ -17,7 +17,7 @@ import { execSync } from 'child_process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const PORTS = [9000, 9001, 9002, 9003];
+const PORTS = [9000, 9001, 9002, 9003, 63798];
 const POLL_INTERVAL = 1000; // 1 second
 const SERVER_PORT = process.env.PORT || 3000;
 const APP_PASSWORD = process.env.APP_PASSWORD || 'antigravity';
@@ -137,6 +137,13 @@ async function discoverCDP() {
                 console.log('Found Jetski/Launchpad target:', jetski.title);
                 return { port, url: jetski.webSocketDebuggerUrl };
             }
+
+            // Priority 3: Antigravity Web Chat
+            const chat = list.find(t => t.url?.includes('/c/') || (t.type === 'page' && t.url?.includes('127.0.0.1')));
+            if (chat && chat.webSocketDebuggerUrl) {
+                console.log('Found Web Chat target:', chat.title);
+                return { port, url: chat.webSocketDebuggerUrl };
+            }
         } catch (e) {
             errors.push(`${port}: ${e.message}`);
         }
@@ -210,8 +217,12 @@ async function connectCDP(url) {
 // Capture chat snapshot
 async function captureSnapshot(cdp) {
     const CAPTURE_SCRIPT = `(async () => {
-        const cascade = document.getElementById('conversation') || document.getElementById('chat') || document.getElementById('cascade');
+        const cascade = document.querySelector('[data-testid="conversation-view"]');
         if (!cascade) {
+            // If the chat container is missing (e.g. user is on a background task tab), attempt to click back to the chat!
+            const chatTab = Array.from(document.querySelectorAll('a, button, [role="button"]')).find(e => e.innerText && e.innerText.trim().length > 0 && e.closest('.bg-sidebar-secondary'));
+            if (chatTab) chatTab.click();
+            
             // Debug info
             const body = document.body;
             const childIds = Array.from(body.children).map(c => c.id).filter(id => id).join(', ');
@@ -222,6 +233,16 @@ async function captureSnapshot(cdp) {
         
         // Find the main scrollable container
         const scrollContainer = cascade.querySelector('.overflow-y-auto, [data-scroll-area]') || cascade;
+
+        // CRITICAL: If the Desktop App is currently loading older messages, it often replaces the entire chat 
+        // container with a spinner temporarily. If we capture this transient state, the Mobile App will render
+        // an empty chat, causing scrollHeight to collapse, which completely ruins the user's scroll position
+        // when the messages finally load a second later.
+        // We detect this by checking if the scrollContainer has less than 200px of content (a real chat is much taller).
+        if (scrollContainer.scrollHeight < 200) {
+            return { error: 'transient loading state detected, skipping snapshot' };
+        }
+
         const scrollInfo = {
             scrollTop: scrollContainer.scrollTop,
             scrollHeight: scrollContainer.scrollHeight,
@@ -263,7 +284,9 @@ async function captureSnapshot(cdp) {
                 '.mx-8.mb-8',
                 '.mx-4.mb-4',
                 '.fixed.bottom-0',
-                '.absolute.bottom-0'
+                '.absolute.bottom-0',
+                '#InputBox',
+                '[class*="bg-gradient-to-"]'
             ];
 
             interactionSelectors.forEach(selector => {
@@ -280,14 +303,14 @@ async function captureSnapshot(cdp) {
                                        el.hasAttribute('data-lexical-editor') ||
                                        text.includes('ask anything') ||
                                        text.includes('to mention');
-                        if (!isEditor && isActionArea && selector !== '[contenteditable="true"]') {
+                        if (!isEditor && isActionArea && selector !== '[contenteditable="true"]' && selector !== '#InputBox') {
                             return; // Protect action bars
                         }
 
                         // For the editor or its container, remove it
                         // Go up to find the main floating box if it's a deep selector
                         let targetToRemove = el;
-                        if (isEditor || selector.includes('bottom-0')) {
+                        if (isEditor || selector.includes('bottom-0') || selector.includes('InputBox')) {
                              // Find the common container for the input box (usually has margins or padding)
                              let parent = el.parentElement;
                              for (let i = 0; i < 4; i++) {
@@ -391,7 +414,7 @@ async function captureSnapshot(cdp) {
         });
         await Promise.all(promises);
 
-        // Fix inline file references: Antigravity nests <div> elements inside
+        // Fix inline file references and text tokens: Antigravity nests <div> elements inside
         // <span> and <p> tags (e.g. file-type icons). Browsers auto-close <p> and
         // <span> when they encounter a <div>, causing unwanted line breaks.
         // Solution: Convert any <div> inside an inline parent to a <span>.
@@ -405,7 +428,8 @@ async function captureSnapshot(cdp) {
                     if (!parent) continue;
                     
                     const parentIsInline = inlineTags.has(parent.tagName) || 
-                        (parent.className && (parent.className.includes('inline-flex') || parent.className.includes('inline-block')));
+                        (parent.className && typeof parent.className === 'string' && (parent.className.includes('inline-flex') || parent.className.includes('inline-block') || parent.className.includes('inline'))) ||
+                        (window.getComputedStyle && window.getComputedStyle(parent).display.includes('inline'));
                         
                     if (parentIsInline) {
                         const span = document.createElement('span');
@@ -415,7 +439,7 @@ async function captureSnapshot(cdp) {
                         }
                         if (div.className) span.className = div.className;
                         if (div.getAttribute('style')) span.setAttribute('style', div.getAttribute('style'));
-                        span.style.display = 'inline-flex';
+                        span.style.display = 'inline'; // Default to inline to preserve native text spacing. inline-flex collapses trailing spaces!
                         span.style.alignItems = 'center';
                         span.style.verticalAlign = 'middle';
                         div.replaceWith(span);
@@ -434,7 +458,11 @@ async function captureSnapshot(cdp) {
                 }
             } catch (e) { }
         }
-        const allCSS = rules.join('\\n');
+        const allCSS = rules.join(' ') + 
+            ' .conversation-button-group { display: none !important; }' +
+            ' div[class*="bg-sidebar"] { display: none !important; width: 0 !important; }' +
+            ' div[style*=" width: 256px;"] { display: none !important; width: 0 !important; }' +
+            ' :root { --sidebar-width: 0px !important; --aux-pane-width: 0px !important; }';
         
         return {
             html: html,
@@ -462,15 +490,15 @@ async function captureSnapshot(cdp) {
             });
 
             if (result.exceptionDetails) {
-                // console.log(`Context ${ctx.id} exception:`, result.exceptionDetails);
+                console.log(`Context ${ctx.id} exception:`, JSON.stringify(result.exceptionDetails));
                 continue;
             }
 
             if (result.result && result.result.value) {
                 const val = result.result.value;
                 if (val.error) {
-                    // console.log(`Context ${ctx.id} script error:`, val.error);
-                    // if (val.debug) console.log(`   Debug info:`, JSON.stringify(val.debug));
+                    console.log(`Context ${ctx.id} script error:`, val.error);
+                    if (val.debug) console.log(`   Debug info:`, JSON.stringify(val.debug));
                 } else {
                     return val;
                 }
@@ -492,7 +520,7 @@ async function injectMessage(cdp, text) {
         const cancel = document.querySelector('[data-tooltip-id="input-send-button-cancel-tooltip"]');
         if (cancel && cancel.offsetParent !== null) return { ok:false, reason:"busy" };
 
-        const editors = [...document.querySelectorAll('#conversation [contenteditable="true"], #chat [contenteditable="true"], #cascade [contenteditable="true"]')]
+        const editors = [...document.querySelectorAll('[data-testid="conversation-view"] [contenteditable="true"], #root [contenteditable="true"], .overflow-y-auto [contenteditable="true"]')]
             .filter(el => el.offsetParent !== null);
         const editor = editors.at(-1);
         if (!editor) return { ok:false, error:"editor_not_found" };
@@ -520,8 +548,9 @@ async function injectMessage(cdp, text) {
         }
 
         // Submit button not found, but text is inserted - trigger Enter key
-        editor.dispatchEvent(new KeyboardEvent("keydown", { bubbles:true, key:"Enter", code:"Enter" }));
-        editor.dispatchEvent(new KeyboardEvent("keyup", { bubbles:true, key:"Enter", code:"Enter" }));
+        const enterEvent = { bubbles:true, key:"Enter", code:"Enter", keyCode: 13, which: 13 };
+        editor.dispatchEvent(new KeyboardEvent("keydown", enterEvent));
+        editor.dispatchEvent(new KeyboardEvent("keyup", enterEvent));
         
         return { ok:true, method:"enter_keypress" };
     })()`;
@@ -741,16 +770,16 @@ async function remoteScroll(cdp, { scrollTop, scrollPercent }) {
     const EXPRESSION = `(async () => {
         try {
             // Find the main scrollable chat container
-            const scrollables = [...document.querySelectorAll('#conversation [class*="scroll"], #chat [class*="scroll"], #cascade [class*="scroll"], #conversation [style*="overflow"], #chat [style*="overflow"], #cascade [style*="overflow"]')]
+            const scrollables = [...document.querySelectorAll('[data-testid="conversation-view"] [class*="scroll"], #root [class*="scroll"], .overflow-y-auto [class*="scroll"], [data-testid="conversation-view"] [style*="overflow"], #root [style*="overflow"], .overflow-y-auto [style*="overflow"]')]
                 .filter(el => el.scrollHeight > el.clientHeight);
             
             // Also check for the main chat area
-            const chatArea = document.querySelector('#conversation .overflow-y-auto, #chat .overflow-y-auto, #cascade .overflow-y-auto, #conversation [data-scroll-area], #chat [data-scroll-area], #cascade [data-scroll-area]');
+            const chatArea = document.querySelector('[data-testid="conversation-view"] .overflow-y-auto, #root .overflow-y-auto, .overflow-y-auto .overflow-y-auto, [data-testid="conversation-view"] [data-scroll-area], #root [data-scroll-area], .overflow-y-auto [data-scroll-area]');
             if (chatArea) scrollables.unshift(chatArea);
             
             if (scrollables.length === 0) {
                 // Fallback: scroll the main container element
-                const cascade = document.getElementById('conversation') || document.getElementById('chat') || document.getElementById('cascade');
+                const cascade = document.querySelector('[data-testid="conversation-view"]') || document.getElementById('root');
                 if (cascade && cascade.scrollHeight > cascade.clientHeight) {
                     scrollables.push(cascade);
                 }
@@ -764,9 +793,14 @@ async function remoteScroll(cdp, { scrollTop, scrollPercent }) {
             if (${scrollPercent} !== undefined) {
                 const maxScroll = target.scrollHeight - target.clientHeight;
                 target.scrollTop = maxScroll * ${scrollPercent};
+                if (${scrollPercent} === 0) {
+                    const loadBtn = document.querySelector('[aria-label^="Load older messages"]');
+                    if (loadBtn) loadBtn.click();
+                }
             } else {
                 target.scrollTop = ${scrollTop || 0};
             }
+            target.dispatchEvent(new Event('scroll', {bubbles: true}));
             
             return { success: true, scrolled: target.scrollTop };
         } catch(e) {
@@ -1424,12 +1458,12 @@ async function closeHistory(cdp) {
 // Check if a chat is currently open (has cascade element)
 async function hasChatOpen(cdp) {
     const EXP = `(() => {
-    const chatContainer = document.getElementById('conversation') || document.getElementById('chat') || document.getElementById('cascade');
-    const hasMessages = chatContainer && chatContainer.querySelectorAll('[class*="message"], [data-message]').length > 0;
+    const chatContainer = document.querySelector('[data-testid="conversation-view"]') || document.getElementById('root');
+    const hasMessages = chatContainer && chatContainer.querySelectorAll('[class*="message"], [data-message], [role="article"]').length > 0;
     return {
         hasChat: !!chatContainer,
         hasMessages: hasMessages,
-        editorFound: !!(chatContainer && chatContainer.querySelector('[data-lexical-editor="true"]'))
+        editorFound: !!document.querySelector('[contenteditable="true"]')
     };
 })()`;
 
@@ -1617,6 +1651,7 @@ async function startPolling(wss) {
                 if (hash !== lastSnapshotHash) {
                     lastSnapshot = snapshot;
                     lastSnapshotHash = hash;
+                    try { fs.writeFileSync(join(__dirname, 'latest_snapshot.html'), snapshot.html, 'utf8'); } catch(e){}
 
                     // Broadcast to all connected clients
                     wss.clients.forEach(client => {
@@ -1859,6 +1894,10 @@ async function createServer() {
         }
 
         const result = await injectMessage(cdpConnection, message);
+
+        if (!result.ok && result.reason === 'busy') {
+            return res.json({ success: false, error: 'busy' });
+        }
 
         // Always return 200 - the message usually goes through even if CDP reports issues
         // The client will refresh and see if the message appeared

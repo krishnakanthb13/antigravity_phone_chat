@@ -4,20 +4,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Antigravity Phone Connect</title>
+    <title>Antigravity Mobile</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/css/style.css?v=2.5">
 </head>
 
 <body>
     <!-- Header -->
     <header class="header">
         <h1>
-            <span>Antigravity Phone Connect</span>
+            <span></span>
         </h1>
 
         <div class="header-controls">
@@ -50,26 +50,7 @@
         </div>
     </header>
 
-    <!-- Settings Bar -->
-    <div class="settings-bar">
-        <div class="setting-chip" id="modeBtn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-            </svg>
-            <span id="modeText">Fast</span>
-        </div>
-        <div class="setting-chip" id="modelBtn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 16v-4" />
-                <path d="M12 8h.01" />
-            </svg>
-            <span id="modelText">Select Model</span>
-        </div>
-        <div class="setting-chip" id="syncStats" style="cursor: default; border: none; background: transparent;">
-            <span id="statsText" style="font-size: 10px; opacity: 0.6;">Syncing...</span>
-        </div>
-    </div>
+    <!-- Settings Bar removed per user request -->
 
     <!-- SSL Banner (shown when running HTTP) -->
     <div class="ssl-banner" id="sslBanner" style="display: none;">
@@ -80,6 +61,12 @@
 
     <!-- Chat Container -->
     <div class="chat-container" id="chatContainer">
+        <!-- Infinite Scroll Loader -->
+        <div id="infiniteScrollLoader" class="infinite-scroll-loader hidden">
+            <div class="spinner-small"></div>
+            <span>Loading older messages...</span>
+        </div>
+        
         <div class="chat-content" id="chatContent">
             <div class="loading-state">
                 <div class="loading-spinner"></div>
@@ -95,24 +82,16 @@
         </svg>
     </button>
 
-    <!-- Quick Actions -->
-    <div class="quick-actions">
-        <div class="action-chip" onclick="quickAction('Continue')">Continue</div>
-        <div class="action-chip" onclick="quickAction('Please fix the bugs in this file.')">Fix Bugs</div>
-        <div class="action-chip" onclick="quickAction('Please create documentation for this.')">Create Docs</div>
-    </div>
+    <!-- Quick Actions Removed -->
 
     <!-- Input Section -->
-    <div class="input-section">
-        <div class="input-wrapper">
-            <textarea id="messageInput" placeholder="Message..." rows="1"></textarea>
-
-
-
-            <button class="send-btn" id="sendBtn" aria-label="Send">
-                <svg viewBox="0 0 24 24">
-                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
-                        style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;" />
+    <div class="input-container" style="background-color: var(--surface) !important; border-top: 1px solid var(--border); box-shadow: 0 -4px 6px rgba(0,0,0,0.1);">
+        <div class="input-wrapper" style="background-color: var(--bg-input); border: 1px solid var(--border);">
+            <textarea id="messageInput" placeholder="Send a message..." rows="1" style="background-color: transparent; color: var(--text-primary);"></textarea>
+            <button class="send-btn" id="sendBtn" aria-label="Send Message">
+                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                 </svg>
             </button>
         </div>
@@ -147,7 +126,7 @@
         </div>
     </div>
 
-    <script src="js/app.js"></script>
+    <script src="js/app.js?v=4"></script>
 </body>
 
 </html>

@@ -4,8 +4,8 @@
     /* Slate 950 */
     --bg-panel: #1e293b;
     /* Slate 800 */
-    --bg-input: #334155;
-    /* Slate 700 */
+    --bg-input: #2a3441;
+    /* Slightly lighter than panel, darker than slate 700 */
     --border: #334155;
     /* Slate 700 */
     --text-main: #f8fafc;
@@ -286,15 +286,16 @@ body {
 /* Chat Container */
 .chat-container {
     flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
     position: relative;
     background: var(--bg-app);
 }
 
 .chat-content {
-    min-height: 100%;
-    padding: 8px 12px;
+    height: 100%;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .loading-state {
@@ -861,3 +862,35 @@ textarea::-webkit-scrollbar {
 .mt-4 {
     margin-top: 24px;
 }
+.infinite-scroll-loader {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 50;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 0;
+}
+.infinite-scroll-loader:not(.hidden) {
+    opacity: 1;
+}
+.spinner-small {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
