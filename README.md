@@ -104,6 +104,11 @@ You can use **ngrok** (requires account), **Cloudflare Tunnel** (requires `cloud
    ```
    *(Optional)* You can add `PINGGY_TOKEN=your-token` for a persistent subdomain if you have a Pinggy account.
 
+#### Option D: Tailscale Tunnel
+1. **Create an Tailscale account**: Go to the [sign up page](https://login.tailscale.com/start) and register an account.
+2. **Install Tailscale**: Go to the [download page](https://tailscale.com/download) and install Tailscale.
+3. **Configure Tailscale**: After installation is complete, sign in and connect to the vpn (if required). Your device should automatically get a Tailscale ip for remote connection. Use the IP on your second device, with the correct port.
+
 ### Step 2: Configuration
 1. **Automatic Configuration**: Simply run any launcher script. They will detect if `.env` is missing and automatically create it using `.env.example` as a template.
 2. **Manual Setup**: Alternatively, copy `.env.example` to `.env` manually and update the values:
